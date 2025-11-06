@@ -52,7 +52,8 @@ const state = {
 
   refreshIntervalSec: 60,
   bringToFrontIntervalId: null,
-  openedNotifications: {}
+  openedNotifications: new Map(),
+  popupRepeatTracker: new Map()
 };
 
 // ============================================
@@ -178,6 +179,7 @@ async function loadSettings() {
       language: "uk",
       syncInterval: 30,
       bringToFrontInterval: 0,
+      popupRepeatCount: '3',
       enableNotifications: true
     }, (items) => {
       state.creatioUrl = normalizeBase(items.creatioUrl || "");
@@ -188,6 +190,11 @@ async function loadSettings() {
       log("⚙️ Settings loaded:", { hasUrl: !!state.creatioUrl, language: state.currentLanguage, syncInterval: state.refreshIntervalSec });
 
       startBringToFrontInterval(items.bringToFrontInterval);
+      state.notificationSettings = {
+        ...(state.notificationSettings || {}),
+        popupRepeatCount: items.popupRepeatCount ?? state.notificationSettings?.popupRepeatCount,
+        repeatInterval: Math.max(0, Number(items.bringToFrontInterval) || 0)
+      };
       resolve();
     });
   });
@@ -640,11 +647,11 @@ async function initializeNotifier() {
   try {
     // Отримуємо налаштування
     const settings = await chrome.storage.sync.get({
-      deliveryMode: 'system',
+      deliveryMode: 'window',
       requireInteraction: false,
-      repeatCount: 3,
-      repeatInterval: 60,
-      autoClose: 10,
+      popupRepeatCount: '3',
+      bringToFrontInterval: 20,
+      notificationTimeout: 0,
       cascade: true,
       openUrlAfterVisa: true,
       enabledTypes: [
@@ -665,15 +672,37 @@ async function initializeNotifier() {
       }
     });
     
-    state.deliveryMode = settings.deliveryMode;
-    state.notificationSettings = settings;
-    
+    const repeatRaw = settings.popupRepeatCount ?? settings.repeatCount ?? '3';
+    const repeatInfinite = repeatRaw === 'infinite' || repeatRaw === '∞' || repeatRaw === Infinity;
+    const repeatCount = repeatInfinite ? Infinity : Math.max(0, Number(repeatRaw) || 0);
+    const repeatInterval = Math.max(0, Number(settings.bringToFrontInterval ?? state.notificationSettings.repeatInterval ?? 0));
+    const autoClose = Math.max(0, Number(settings.notificationTimeout ?? settings.autoClose ?? 0));
+
+    state.deliveryMode = settings.deliveryMode || 'window';
+    state.notificationSettings = {
+      ...settings,
+      popupRepeatCount: repeatRaw,
+      repeatInfinite,
+      repeatCount,
+      repeatInterval,
+      autoClose
+    };
+
+    if (state.syncManager) {
+      state.syncManager.settings = state.notificationSettings;
+    }
+
+    if (state.deliveryMode !== 'window') {
+      state.popupRepeatTracker.forEach((_, key) => cancelPopupReminder(key));
+      state.popupRepeatTracker.clear();
+    }
+
     log("⚙️ Notification settings:", settings.deliveryMode);
-    
+
     // Callback для дій користувача
     const onAction = async (notificationId, action, data) => {
       log(`📢 Notification action: ${action} for ${data.id}`);
-      
+
       try {
         switch (action) {
           case 'click':
@@ -684,26 +713,34 @@ async function initializeNotifier() {
             }
             // Позначити як прочитано
             await state.notificationsManager?.markAsRead?.(data.id);
+            cancelPopupReminder(data.id);
             break;
-          
+
           case 'delete':
             await state.notificationsManager?.deleteNotification?.(data.id);
+            cancelPopupReminder(data.id);
             break;
-          
+
           case 'done':
             await state.notificationsManager?.markAsRead?.(data.id);
+            cancelPopupReminder(data.id);
             break;
-          
+
           case 'visa':
             await state.notificationsManager?.setVisaDecision?.(data.id, data.decision);
-            // Відкрити URL якщо налаштовано
-            if (settings.openUrlAfterVisa && data.sourceUrl) {
-              const fullUrl = state.creatioUrl + data.sourceUrl;
-              await chrome.tabs.create({ url: fullUrl });
-            }
+            await state.notificationsManager?.markAsRead?.(data.id);
+            cancelPopupReminder(data.id);
+            break;
+
+          case 'dismiss':
+            // залишаємо у трекері для повторного показу
             break;
         }
-        
+
+        if (data?.id) {
+          removeOpenedWindow(data.id);
+        }
+
         // Оновити дані після дії
         setTimeout(() => state.syncManager?.quickSync?.(), 500);
         
@@ -713,7 +750,7 @@ async function initializeNotifier() {
     };
     
     // Створюємо відповідний notifier
-    if (settings.deliveryMode === 'system') {
+    if (state.deliveryMode === 'system') {
       state.notifier = new OSNotifier(onAction);
       log("✅ OS Notifier initialized");
     } else {
@@ -880,6 +917,8 @@ async function initializeManagers() {
     if (state.syncManager && state.notifier) {
       state.syncManager.notifier = state.notifier;
       state.syncManager.settings = state.notificationSettings;
+      state.syncManager.schedulePopupReminder = schedulePopupReminder;
+      state.syncManager.normalizeNotificationForDelivery = normalizeNotificationForDelivery;
       log("✅ Notifier attached to SyncManager");
     }
     
@@ -983,20 +1022,24 @@ function setupMessageListeners() {
   
             case "markAsRead": {
               await state.notificationsManager?.markAsRead?.(message.id);
+              cancelPopupReminder(message.id);
               setTimeout(() => state.syncManager?.quickSync?.(), 400);
               sendResponse({ success: true });
               return;
             }
-  
+
             case "markAllRead": {
               const result = await state.notificationsManager?.markAllAsRead?.();
+              // Скидаємо всі активні нагадування
+              state.popupRepeatTracker?.forEach((_, key) => cancelPopupReminder(key));
               setTimeout(() => state.syncManager?.quickSync?.(), 400);
               sendResponse({ success: true, count: result?.count || 0 });
               return;
             }
-  
+
             case "deleteNotification": {
               await state.notificationsManager?.deleteNotification?.(message.id);
+              cancelPopupReminder(message.id);
               setTimeout(() => state.syncManager?.quickSync?.(), 400);
               sendResponse({ success: true });
               return;
@@ -1004,6 +1047,8 @@ function setupMessageListeners() {
   
             case "updateVisaDecision": {
               await state.notificationsManager?.setVisaDecision?.(message.id, message.decision);
+              await state.notificationsManager?.markAsRead?.(message.id);
+              cancelPopupReminder(message.id);
               setTimeout(() => state.syncManager?.quickSync?.(), 400);
               sendResponse({ success: true });
               return;
@@ -1170,12 +1215,143 @@ function startBringToFrontInterval(intervalSeconds) {
   if (state.bringToFrontIntervalId) clearInterval(state.bringToFrontIntervalId);
   if (!intervalSeconds || intervalSeconds <= 0) return;
   state.bringToFrontIntervalId = setInterval(() => {
-    Object.entries(state.openedNotifications).forEach(([id, winId]) => {
-      chrome.windows.update(Number(winId), { focused: true }, () => {
-        if (chrome.runtime.lastError) delete state.openedNotifications[id];
+    state.openedNotifications.forEach((info, id) => {
+      const winId = Number(info?.windowId ?? info);
+      if (!Number.isFinite(winId)) {
+        state.openedNotifications.delete(id);
+        return;
+      }
+      chrome.windows.update(winId, { focused: true }, () => {
+        if (chrome.runtime.lastError) {
+          state.openedNotifications.delete(id);
+        }
       });
     });
   }, intervalSeconds * 1000);
+}
+
+function trackOpenedWindow(notificationId, windowId) {
+  if (!notificationId || !Number.isFinite(Number(windowId))) return;
+  state.openedNotifications.set(String(notificationId), { windowId: Number(windowId) });
+}
+
+function removeOpenedWindow(notificationId) {
+  if (!notificationId) return;
+  state.openedNotifications.delete(String(notificationId));
+}
+
+function cancelPopupReminder(notificationId) {
+  const id = String(notificationId || '');
+  if (!id) return;
+  const entry = state.popupRepeatTracker.get(id);
+  if (entry?.timerId) {
+    clearTimeout(entry.timerId);
+  }
+  state.popupRepeatTracker.delete(id);
+
+  if (state.deliveryMode === 'window') {
+    const opened = state.openedNotifications.get(id);
+    if (opened?.windowId && typeof state.notifier?.close === 'function') {
+      state.notifier.close(opened.windowId).catch(() => {});
+    }
+  } else if (state.deliveryMode === 'system') {
+    const notificationKey = `dn_${id}`;
+    if (typeof state.notifier?.clear === 'function') {
+      state.notifier.clear(notificationKey).catch(() => {});
+    }
+  }
+
+  state.openedNotifications.delete(id);
+}
+
+function getRepeatLimits() {
+  const infinite = !!state.notificationSettings?.repeatInfinite;
+  const count = infinite ? Infinity : Math.max(0, Number(state.notificationSettings?.repeatCount) || 0);
+  const interval = Math.max(0, Number(state.notificationSettings?.repeatInterval) || 0);
+  return { infinite, count, interval };
+}
+
+function normalizeNotificationForDelivery(notification) {
+  if (!notification) return null;
+  const typeId = notification.DnNotificationTypeId || notification.typeId;
+  return {
+    id: notification.Id || notification.id,
+    title: notification.DnTitle || notification.title || 'Notification',
+    message: notification.DnMessage || notification.message || '',
+    sourceUrl: notification.DnSourceUrl || notification.sourceUrl || '',
+    typeId,
+    visaStatusId: notification.DnVisaStatusId || notification.visaStatusId,
+    priority: notification.DnPriority || notification.priority || 0,
+    createdOn: notification.CreatedOn || notification.createdOn,
+    isVisa: getNotificationTypeName(typeId) === 'Visa'
+  };
+}
+
+function schedulePopupReminder(notification) {
+  if (state.deliveryMode !== 'window' || !state.notifier) return;
+  const normalized = normalizeNotificationForDelivery(notification);
+  if (!normalized?.id) return;
+
+  const id = String(normalized.id);
+  const limits = getRepeatLimits();
+  const existing = state.popupRepeatTracker.get(id) || {};
+
+  if (existing.timerId) {
+    clearTimeout(existing.timerId);
+  }
+
+  const entry = {
+    id,
+    notification: normalized,
+    attempts: 0,
+    infinite: limits.infinite,
+    maxRepeats: limits.count,
+    timerId: null,
+    handled: false
+  };
+
+  state.popupRepeatTracker.set(id, entry);
+  showPopupEntry(id).catch(err => warn('❌ Failed to start popup reminder:', err));
+}
+
+async function showPopupEntry(id) {
+  if (state.deliveryMode !== 'window' || !state.notifier) return;
+  const entry = state.popupRepeatTracker.get(id);
+  if (!entry || entry.handled) return;
+
+  const limits = getRepeatLimits();
+
+  const opened = state.openedNotifications.get(id);
+  if (opened?.windowId && typeof state.notifier?.close === 'function') {
+    try {
+      await state.notifier.close(opened.windowId);
+    } catch {}
+  }
+
+  try {
+    const windowId = await state.notifier.show(entry.notification, {
+      autoClose: state.notificationSettings?.autoClose || 0,
+      cascade: state.notificationSettings?.cascade !== false
+    });
+    if (Number.isFinite(windowId)) {
+      trackOpenedWindow(id, windowId);
+    }
+  } catch (err) {
+    warn('❌ Failed to show popup window:', err);
+  }
+
+  entry.attempts += 1;
+
+  const totalAllowed = limits.infinite ? Infinity : (limits.count + 1);
+  if (!limits.infinite && entry.attempts >= totalAllowed) {
+    entry.handled = true;
+    state.popupRepeatTracker.delete(id);
+    return;
+  }
+
+  if (limits.interval > 0) {
+    entry.timerId = setTimeout(() => showPopupEntry(id), limits.interval * 1000);
+  }
 }
 
 // Нормалізація даних нотифікацій (для popup)
@@ -1192,6 +1368,15 @@ const NOTIFICATION_TYPES = {
   'fa41b6a0-eafd-4bb9-a913-aa74000b46f6': 'ESN'
 };
 
+const NOTIFICATION_TYPE_EMOJI = {
+  Reminder: '🔔',
+  Visa: '✍️',
+  Email: '📧',
+  ESN: '💬',
+  System: '⚙️',
+  Custom: '⭐'
+};
+
 function getNotificationTypeName(typeId) {
   return NOTIFICATION_TYPES[typeId] || 'Custom';
 }
@@ -1201,21 +1386,26 @@ function getNotificationTypeName(typeId) {
 // ============================================
 
 function processNotificationData(items) {
-  return (items || []).map(item => ({
-    id: item.Id,
-    title: item.DnTitle || item.DnSubjectCaption || "Notification",
-    message: item.DnMessage || item.DnDescription || "",
-    date: item.CreatedOn || new Date().toISOString(),
-    url: item.DnSourceUrl || "",
-    // Use the fetched notification type name, fallback to ID lookup, then "Custom"
-    type: item.DnNotificationType || getNotificationTypeName(item.DnNotificationTypeId) || "Custom",
-    typeId: item.DnNotificationTypeId,
-    isRead: !!item.DnIsRead,
-    dataRead: item.DnDataRead || null,
-    visaCanceled: !!item.DnVisaCanceled,
-    visaNegative: !!item.DnVisaNegative,
-    visaPositive: !!item.DnVisaPositive
-  }));
+  return (items || []).map(item => {
+    const typeName = getNotificationTypeName(item.DnNotificationTypeId);
+    return {
+      id: item.Id,
+      title: item.DnTitle || item.DnSubjectCaption || "Notification",
+      message: item.DnMessage || item.DnDescription || "",
+      date: item.CreatedOn || new Date().toISOString(),
+      url: item.DnSourceUrl || "",
+      type: typeName,
+      typeId: item.DnNotificationTypeId,
+      typeEmoji: NOTIFICATION_TYPE_EMOJI[typeName] || '⭐',
+      isVisa: typeName === 'Visa',
+      isRead: !!item.DnIsRead,
+      deleted: !!item.DnDelete,
+      dataRead: item.DnDataRead || null,
+      visaCanceled: !!item.DnVisaCanceled,
+      visaNegative: !!item.DnVisaNegative,
+      visaPositive: !!item.DnVisaPositive
+    };
+  });
 }
 
 // ============================================
@@ -1225,20 +1415,62 @@ chrome.runtime.onInstalled.addListener(() => log("🚀 Extension installed/updat
 chrome.runtime.onStartup.addListener(() => log("🔁 Runtime startup"));
 chrome.runtime.onUpdateAvailable?.addListener((d) => log("🔄 Update available:", d.version));
 
-function showOSNotification(title, message, url){
+function showOSNotification(notification, baseUrl) {
   try {
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "images/icon-128.png",
-      title: title || "Creatio Notification",
-      message: message || "",
-      priority: 0
-    }, (id)=>{
-      if(url){
-        chrome.notifications.onClicked.addListener((nid)=>{
-          if(nid===id) chrome.tabs.create({url});
-        });
+    if (!notification) {
+      return;
+    }
+
+    const id = `dn_${notification.id || notification.Id || crypto?.randomUUID?.() || Date.now()}`;
+    const title = notification.title || notification.DnTitle || "Creatio Notification";
+    let message = notification.message || notification.DnMessage || "";
+    if (message.length > 256) {
+      message = `${message.slice(0, 253)}...`;
+    }
+    message = message.replace(/[\r\n]+/g, " ");
+
+    const rawSource = notification.sourceUrl || notification.DnSourceUrl || "";
+    const root = normalizeBase(baseUrl || state.creatioUrl || "");
+    let fullUrl = "";
+    if (rawSource) {
+      try {
+        if (root) {
+          fullUrl = new URL(rawSource, `${root}/`).toString();
+        } else {
+          fullUrl = new URL(rawSource).toString();
+        }
+      } catch {
+        fullUrl = root ? `${root}${rawSource.startsWith('/') ? '' : '/'}${rawSource}` : rawSource;
       }
+    }
+
+    chrome.notifications.create(id, {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("images/icon-128.png"),
+      title,
+      message,
+      priority: Number(notification.priority || notification.DnPriority || 0)
+    }, () => {
+      if (!fullUrl) {
+        return;
+      }
+      const clickHandler = (notificationId) => {
+        if (notificationId === id) {
+          chrome.tabs.create({ url: fullUrl }).catch(() => {});
+          chrome.notifications.onClicked.removeListener(clickHandler);
+          chrome.notifications.onClosed.removeListener(closeHandler);
+        }
+      };
+      const closeHandler = (notificationId) => {
+        if (notificationId === id) {
+          chrome.notifications.onClicked.removeListener(clickHandler);
+          chrome.notifications.onClosed.removeListener(closeHandler);
+        }
+      };
+      chrome.notifications.onClicked.addListener(clickHandler);
+      chrome.notifications.onClosed.addListener(closeHandler);
     });
-  } catch(e){}
+  } catch (e) {
+    console.warn("[Background] Failed to show OS notification:", e);
+  }
 }

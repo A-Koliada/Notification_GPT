@@ -222,30 +222,39 @@ class SyncManager {
             console.log('[SyncManager] ⏭️ Skipping notification - type disabled:', typeId);
             continue;
           }
-          
+
           // Нормалізуємо дані
-          const normalizedNotif = {
-            id: notification.Id || notification.id,
-            title: notification.DnTitle || notification.title || 'Нове повідомлення',
-            message: notification.DnMessage || notification.message || '',
-            sourceUrl: notification.DnSourceUrl || notification.sourceUrl || '',
-            typeId: typeId,
-            visaStatusId: notification.DnVisaStatusId || notification.visaStatusId,
-            priority: notification.DnPriority || notification.priority || 0,
-            createdOn: notification.CreatedOn || notification.createdOn
-          };
-          
-          console.log('[SyncManager] 📤 Calling notifier.show for:', normalizedNotif.id);
-          
-          // Викликаємо notifier.show()
-          await this.notifier.show(normalizedNotif, {
-            requireInteraction: settings.requireInteraction || false,
-            autoClose: settings.autoClose || 10,
-            cascade: settings.cascade !== false
-          });
-          
-          console.log('[SyncManager] ✅ Notification shown:', normalizedNotif.id);
-          
+          const normalizedNotif = this.normalizeNotificationForDelivery
+            ? this.normalizeNotificationForDelivery(notification)
+            : {
+                id: notification.Id || notification.id,
+                title: notification.DnTitle || notification.title || 'Нове повідомлення',
+                message: notification.DnMessage || notification.message || '',
+                sourceUrl: notification.DnSourceUrl || notification.sourceUrl || '',
+                typeId: typeId,
+                visaStatusId: notification.DnVisaStatusId || notification.visaStatusId,
+                priority: notification.DnPriority || notification.priority || 0,
+                createdOn: notification.CreatedOn || notification.createdOn
+              };
+
+          if (!normalizedNotif?.id) {
+            continue;
+          }
+
+          console.log('[SyncManager] 📤 Preparing delivery for:', normalizedNotif.id);
+
+          if (typeof this.schedulePopupReminder === 'function' && (this.settings?.deliveryMode ?? 'window') === 'window') {
+            this.schedulePopupReminder(normalizedNotif);
+          } else if (this.notifier) {
+            await this.notifier.show(normalizedNotif, {
+              requireInteraction: settings.requireInteraction || false,
+              autoClose: settings.autoClose || 10,
+              cascade: settings.cascade !== false
+            });
+          }
+
+          console.log('[SyncManager] ✅ Notification scheduled:', normalizedNotif.id);
+
         } catch (error) {
           console.error('[SyncManager] ❌ Failed to show notification:', error);
           console.error('[SyncManager] Error stack:', error.stack);

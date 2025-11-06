@@ -104,8 +104,33 @@
 
             <div class="form-group">
               <label for="bringToFrontInterval" data-i18n="bringToFrontLabel">Інтервал фокусування вікон (сек):</label>
-              <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="5" step="1" value="20">
+              <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="0" step="1" value="20">
               <small data-i18n="bringToFrontHelp">Частота показу вікон на передній план</small>
+            </div>
+
+            <div class="form-group">
+              <label for="deliveryMode" data-i18n="deliveryModeLabel">Тип сповіщень:</label>
+              <select id="deliveryMode" name="deliveryMode">
+                <option value="window" data-i18n="deliveryModeOptions.window">Міні-вікно браузера</option>
+                <option value="system" data-i18n="deliveryModeOptions.system">Системні сповіщення</option>
+              </select>
+              <small data-i18n="deliveryModeHelp">Оберіть вигляд спливаючих сповіщень</small>
+            </div>
+
+            <div class="form-group">
+              <label for="popupRepeatCount" data-i18n="popupRepeatCountLabel">Тривалість повторів:</label>
+              <select id="popupRepeatCount" name="popupRepeatCount">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="infinite" data-i18n="popupRepeatCountOptions.infinity">∞ Безкінечно</option>
+              </select>
+              <small data-i18n="popupRepeatCountHelp">Скільки разів повторно показувати сповіщення</small>
             </div>
 
             <div class="form-group">

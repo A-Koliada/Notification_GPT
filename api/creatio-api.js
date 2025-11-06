@@ -960,20 +960,34 @@ async getNotifications({ onlyUnread = false, limit = 100 } = {}) {
 
   // Видалення
   async deleteNotification(id) {
-    if (!id) return;
+    if (!id) return false;
 
-    // OData DELETE
+    const payloads = [
+      { DnDelete: true },
+      { Delete: true }
+    ];
+
+    for (const payload of payloads) {
+      try {
+        await this.patch(`/odata/DnNotifications(${id})`, payload);
+        return true;
+      } catch {}
+    }
+
     try {
-      await this.request(`/odata/DnNotifications(${id})`, { method: "DELETE", headers: { "If-Match": "*" } });
+      const body = {
+        RootSchemaName: "DnNotifications",
+        PrimaryColumnValue: id,
+        ColumnValues: {
+          Items: {
+            DnDelete: this._cvBool(true)
+          }
+        }
+      };
+      await this.post("/ServiceModel/EntityDataService.svc/Update", body);
       return true;
     } catch {}
 
-    // EDS Delete
-    try {
-      const body = { RootSchemaName: "DnNotifications", PrimaryColumnValue: id };
-      await this.post("/ServiceModel/EntityDataService.svc/Delete", body);
-      return true;
-    } catch {}
     return false;
   }
 

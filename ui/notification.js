@@ -96,18 +96,20 @@ function renderNotification() {
   // Visa section
   if (isVisa) {
     document.getElementById('visaSection').style.display = 'block';
-    document.getElementById('visaBtn').style.display = 'flex';
+    document.getElementById('visaBtn').style.display = 'none';
     document.getElementById('doneBtn').style.display = 'none';
   } else {
     document.getElementById('visaSection').style.display = 'none';
     document.getElementById('visaBtn').style.display = 'none';
     document.getElementById('doneBtn').style.display = 'flex';
   }
-  
+
   // Auto-close timer
   if (autoClose > 0) {
     startAutoCloseTimer(autoClose);
   }
+
+  updateWindowSize();
 }
 
 // ============================================
@@ -116,7 +118,9 @@ function renderNotification() {
 
 function setupEventListeners() {
   // Close button
-  document.getElementById('closeBtn').addEventListener('click', () => {
+  document.getElementById('closeBtn').addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     window.close();
   });
   
@@ -126,73 +130,55 @@ function setupEventListeners() {
   });
   
   // Delete button
-  document.getElementById('deleteBtn').addEventListener('click', () => {
+  document.getElementById('deleteBtn').addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     handleAction('delete');
   });
-  
+
   // Done button
-  document.getElementById('doneBtn').addEventListener('click', () => {
+  document.getElementById('doneBtn').addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     handleAction('done');
   });
-  
-  // Visa submit button
-  document.getElementById('visaBtn').addEventListener('click', () => {
-    handleVisaSubmit();
-  });
+
+  const visaSelect = document.getElementById('visaSelect');
+  if (visaSelect) {
+    visaSelect.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+
+    visaSelect.addEventListener('change', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!visaSelect.value) return;
+      handleAction('visa', { decision: visaSelect.value });
+    });
+  }
 }
 
 // ============================================
 // ACTIONS
 // ============================================
 
-function handleAction(action) {
+function handleAction(action, extra = null) {
   if (!notificationData) return;
-  
+
   console.log('[Notification Window] Action:', action);
-  
+
+  const payload = extra ? { ...notificationData, ...extra } : notificationData;
+
   // Відправляємо повідомлення в background
   chrome.runtime.sendMessage({
     type: 'notification-action',
     windowId: windowId,
     action: action,
-    data: notificationData
+    data: payload
   }).then(() => {
     window.close();
   }).catch(err => {
     console.error('[Notification Window] Failed to send action:', err);
-    window.close();
-  });
-}
-
-function handleVisaSubmit() {
-  const select = document.getElementById('visaSelect');
-  const decision = select.value;
-  
-  if (!decision) {
-    // Highlight select якщо не обрано
-    select.style.borderColor = '#dc2626';
-    select.focus();
-    setTimeout(() => {
-      select.style.borderColor = '#f59e0b';
-    }, 1000);
-    return;
-  }
-  
-  console.log('[Notification Window] Visa decision:', decision);
-  
-  // Відправляємо повідомлення в background
-  chrome.runtime.sendMessage({
-    type: 'notification-action',
-    windowId: windowId,
-    action: 'visa',
-    data: {
-      ...notificationData,
-      decision: decision
-    }
-  }).then(() => {
-    window.close();
-  }).catch(err => {
-    console.error('[Notification Window] Failed to send visa decision:', err);
     window.close();
   });
 }
@@ -204,7 +190,7 @@ function handleVisaSubmit() {
 function startAutoCloseTimer(seconds) {
   const timerBar = document.getElementById('timerBar');
   timerBar.style.animation = `timer-countdown ${seconds}s linear`;
-  
+
   autoCloseTimer = setTimeout(() => {
     console.log('[Notification Window] Auto-closing...');
     window.close();
@@ -214,6 +200,22 @@ function startAutoCloseTimer(seconds) {
 // ============================================
 // HELPERS
 // ============================================
+
+function updateWindowSize() {
+  if (!windowId) return;
+  const container = document.querySelector('.notification-container');
+  if (!container) return;
+
+  const rect = container.getBoundingClientRect();
+  const desiredWidth = Math.min(Math.max(Math.ceil(rect.width) + 32, 320), 520);
+  const desiredHeight = Math.min(Math.max(Math.ceil(document.body.scrollHeight) + 16, 220), 600);
+
+  chrome.runtime.sendMessage({
+    type: 'notification-resize',
+    windowId,
+    size: { width: desiredWidth, height: desiredHeight }
+  }).catch(() => {});
+}
 
 function truncate(str, maxLength) {
   if (!str) return '';

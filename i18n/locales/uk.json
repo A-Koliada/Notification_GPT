@@ -118,6 +118,17 @@
         "popupToggleDesc": "Відображати спливаючі вікна для нових сповіщень",
         "bringToFrontLabel": "Інтервал фокусу вікон (секунди)",
         "bringToFrontHint": "Як часто виводити вікна на передній план (0 = ніколи)",
+        "deliveryModeLabel": "Тип сповіщень",
+        "deliveryModeHelp": "Оберіть вигляд спливаючих сповіщень",
+        "deliveryModeOptions": {
+          "window": "Міні-вікно браузера",
+          "system": "Системне сповіщення"
+        },
+        "popupRepeatCountLabel": "Кількість повторів",
+        "popupRepeatCountHelp": "Скільки разів повторно показувати сповіщення",
+        "popupRepeatCountOptions": {
+          "infinity": "∞ Безкінечно"
+        },
         "languageLabel": "Мова"
       },
       "advanced": {
