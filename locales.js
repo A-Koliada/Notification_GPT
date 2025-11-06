@@ -37,6 +37,24 @@ const translations = {
       creatioUrlLabel: "URL Creatio:",
       notificationTimeoutLabel: "Час автозакриття сповіщень (сек):",
       bringToFrontLabel: "Інтервал фокусування вікон (сек):",
+      deliveryModeLabel: "Тип сповіщень:",
+      deliveryModeOptions: {
+        window: "Міні-вікно браузера",
+        system: "Системні сповіщення"
+      },
+      deliveryModeHelp: "Оберіть вигляд спливаючих сповіщень",
+      popupRepeatCountLabel: "Тривалість повторів:",
+      popupRepeatCountHelp: "Скільки разів повторно показувати сповіщення",
+      popupRepeatCountOptions: {
+        infinity: "∞ Безкінечно"
+      },
+      deleteActionLabel: "Видалити",
+      markDoneActionLabel: "Позначити як прочитане",
+      visaVoteLabel: "Голосування",
+      visaVotePlaceholder: "Оберіть рішення",
+      visaVotePositive: "Позитивне",
+      visaVoteNegative: "Негативне",
+      visaVoteCanceled: "Скасовано",
       saveButton: "Зберегти",
       resetButton: "Скинути",
       saveSuccess: "Налаштування збережено!",
@@ -127,6 +145,24 @@ const translations = {
       creatioUrlLabel: "Creatio URL:",
       notificationTimeoutLabel: "Notification timeout (sec):",
       bringToFrontLabel: "Bring to front interval (sec):",
+      deliveryModeLabel: "Notification delivery mode:",
+      deliveryModeOptions: {
+        window: "Mini browser window",
+        system: "System notification"
+      },
+      deliveryModeHelp: "Choose how popup notifications should appear",
+      popupRepeatCountLabel: "Repeat count:",
+      popupRepeatCountHelp: "Number of reminder shows for a notification",
+      popupRepeatCountOptions: {
+        infinity: "∞ Infinite"
+      },
+      deleteActionLabel: "Delete",
+      markDoneActionLabel: "Mark as read",
+      visaVoteLabel: "Voting",
+      visaVotePlaceholder: "Select decision",
+      visaVotePositive: "Positive",
+      visaVoteNegative: "Negative",
+      visaVoteCanceled: "Canceled",
       saveButton: "Save",
       resetButton: "Reset",
       saveSuccess: "Settings saved!",
@@ -217,6 +253,24 @@ const translations = {
       creatioUrlLabel: "URL Creatio:",
       notificationTimeoutLabel: "Czas automatycznego zamykania (sek):",
       bringToFrontLabel: "Interwał fokusowania okien (sek):",
+      deliveryModeLabel: "Tryb powiadomień:",
+      deliveryModeOptions: {
+        window: "Mini okno przeglądarki",
+        system: "Powiadomienie systemowe"
+      },
+      deliveryModeHelp: "Wybierz wygląd wyskakujących powiadomień",
+      popupRepeatCountLabel: "Liczba powtórzeń:",
+      popupRepeatCountHelp: "Ile razy ponawiać wyświetlenie powiadomienia",
+      popupRepeatCountOptions: {
+        infinity: "∞ Bez ograniczeń"
+      },
+      deleteActionLabel: "Usuń",
+      markDoneActionLabel: "Oznacz jako przeczytane",
+      visaVoteLabel: "Głosowanie",
+      visaVotePlaceholder: "Wybierz decyzję",
+      visaVotePositive: "Pozytywna",
+      visaVoteNegative: "Negatywna",
+      visaVoteCanceled: "Anulowana",
       saveButton: "Zapisz",
       resetButton: "Resetuj",
       saveSuccess: "Ustawienia zapisane!",

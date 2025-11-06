@@ -67,9 +67,7 @@ const dbManager = {
 
       request.onsuccess = () => {
         const notifications = request.result || [];
-        // Filter out deleted
-        const active = notifications.filter(n => !n.DnDelete);
-        resolve(active);
+        resolve(notifications);
       };
 
       request.onerror = () => {

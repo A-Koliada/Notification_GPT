@@ -44,12 +44,19 @@ document.addEventListener("DOMContentLoaded", function () {
     creatioUrl: "",
     notificationTimeout: 0,
     bringToFrontInterval: 20,
+    deliveryMode: "window",
+    popupRepeatCount: "3",
     language: "en" // Default language
   }, (items) => {
     log("🔧 Loaded settings:", items);
     document.getElementById("creatioUrl").value = items.creatioUrl;
     document.getElementById("notificationTimeout").value = items.notificationTimeout;
-    document.getElementById("bringToFrontInterval").value = Math.max(5, items.bringToFrontInterval);
+    const bringInterval = Number(items.bringToFrontInterval);
+    document.getElementById("bringToFrontInterval").value = Number.isFinite(bringInterval)
+      ? bringInterval
+      : 20;
+    document.getElementById("deliveryMode").value = items.deliveryMode || "window";
+    document.getElementById("popupRepeatCount").value = String(items.popupRepeatCount ?? "3");
     document.getElementById("language").value = items.language;
     
     // Update UI language
@@ -62,7 +69,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const settings = {
       creatioUrl: document.getElementById("creatioUrl").value.trim(),
       notificationTimeout: parseInt(document.getElementById("notificationTimeout").value) || 0,
-      bringToFrontInterval: Math.max(5, parseInt(document.getElementById("bringToFrontInterval").value) || 20),
+      bringToFrontInterval: Math.max(0, parseInt(document.getElementById("bringToFrontInterval").value) || 0),
+      deliveryMode: document.getElementById("deliveryMode").value || "window",
+      popupRepeatCount: document.getElementById("popupRepeatCount").value || "3",
       language: document.getElementById("language").value
     };
     
@@ -92,6 +101,8 @@ document.addEventListener("DOMContentLoaded", function () {
         creatioUrl: "",
         notificationTimeout: 0,
         bringToFrontInterval: 20,
+        deliveryMode: "window",
+        popupRepeatCount: "3",
         language: "en"
       };
       
@@ -100,6 +111,8 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("creatioUrl").value = defaultSettings.creatioUrl;
         document.getElementById("notificationTimeout").value = defaultSettings.notificationTimeout;
         document.getElementById("bringToFrontInterval").value = defaultSettings.bringToFrontInterval;
+        document.getElementById("deliveryMode").value = defaultSettings.deliveryMode;
+        document.getElementById("popupRepeatCount").value = defaultSettings.popupRepeatCount;
         document.getElementById("language").value = defaultSettings.language;
         
         // Update UI to default language

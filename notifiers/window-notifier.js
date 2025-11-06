@@ -7,6 +7,7 @@ export class WindowNotifier {
     this.onAction = onAction; // callback: (notificationId, action, data) => {}
     this.activeWindows = new Map(); // windowId -> notification data
     this.cascadeOffset = 0;
+    this.handledWindows = new Set();
     this._setupListeners();
   }
 
@@ -20,14 +21,37 @@ export class WindowNotifier {
       if (message.type === "notification-action") {
         const { windowId, action, data } = message;
         this._log("Action received:", action, windowId);
-        
+
         this.onAction(windowId, action, data);
-        
+
         // Закриваємо вікно
         if (windowId) {
+          this.handledWindows.add(windowId);
           this.close(windowId);
         }
-        
+
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (message.type === "notification-resize") {
+        const { windowId, size } = message;
+        if (windowId && size) {
+          chrome.windows.update(windowId, {
+            width: size.width ? Math.round(size.width) : undefined,
+            height: size.height ? Math.round(size.height) : undefined
+          }).catch(() => {});
+        }
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (message.type === "notification-dismissed") {
+        const { windowId } = message;
+        const data = this.activeWindows.get(windowId);
+        if (data) {
+          this.onAction(windowId, 'dismiss', data);
+        }
         sendResponse({ success: true });
         return true;
       }
@@ -37,7 +61,14 @@ export class WindowNotifier {
     chrome.windows.onRemoved.addListener((windowId) => {
       if (this.activeWindows.has(windowId)) {
         this._log("Window closed:", windowId);
+        if (!this.handledWindows.has(windowId)) {
+          const data = this.activeWindows.get(windowId);
+          if (data) {
+            this.onAction(windowId, 'dismiss', data);
+          }
+        }
         this.activeWindows.delete(windowId);
+        this.handledWindows.delete(windowId);
         this._adjustCascade();
       }
     });
@@ -113,6 +144,7 @@ export class WindowNotifier {
         });
       }, 100);
 
+      return window.id;
     } catch (err) {
       console.error("[WindowNotifier] Failed to create window:", err);
       throw err;
@@ -126,6 +158,7 @@ export class WindowNotifier {
     try {
       await chrome.windows.remove(windowId);
       this.activeWindows.delete(windowId);
+      this.handledWindows.delete(windowId);
       this._adjustCascade();
     } catch (err) {
       // Вікно вже закрите

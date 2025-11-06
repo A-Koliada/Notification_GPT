@@ -153,7 +153,8 @@ const state = {
   isLoading: false,
   currentTab: 'notifications',
   rating: 0,
-  isConnected: false
+  isConnected: false,
+  creatioUrl: ''
 };
 
 // DOM Elements
@@ -358,6 +359,8 @@ async function loadNotifications() {
       return;
     }
     
+    state.creatioUrl = settings.creatioUrl || '';
+
     const response = await chrome.runtime.sendMessage({ action: "getNotifications" });
     if (response?.success) {
       state.notifications = response.notifications || [];
@@ -426,20 +429,75 @@ function renderNotifications() {
     return;
   }
 
-  elements.container.innerHTML = state.notifications.map(notification => `
-    <div class="notification-item" data-id="${notification.id}">
-      <div class="notification-title">${escapeHtml(notification.title)}</div>
-      <div class="notification-message">${escapeHtml(notification.message)}</div>
-      <div class="notification-meta">
-        <span class="notification-type">${escapeHtml(resolveTypeName(notification))}</span>
-        <span class="notification-date">${formatDate(notification.date)}</span>
+  elements.container.innerHTML = state.notifications.map(notification => {
+    const classes = ['notification-item'];
+    if (notification.deleted) classes.push('notification-item--deleted');
+    if (notification.isRead) classes.push('notification-item--read');
+
+    const typeBadge = `${escapeHtml(notification.typeEmoji || '')} ${escapeHtml(notification.type || resolveTypeName(notification))}`.trim();
+    const firstLine = formatNotificationLine(notification.message);
+
+    const deleteLabel = getTranslation('deleteActionLabel');
+    const doneLabel = getTranslation('markDoneActionLabel');
+    const voteLabel = getTranslation('visaVoteLabel');
+    const votePlaceholder = getTranslation('visaVotePlaceholder');
+    const votePositive = getTranslation('visaVotePositive');
+    const voteNegative = getTranslation('visaVoteNegative');
+    const voteCanceled = getTranslation('visaVoteCanceled');
+
+    let actionsHtml = '';
+    if (!notification.deleted) {
+      if (notification.isVisa) {
+        const selectId = `visa-${notification.id}`;
+        actionsHtml = `
+          <div class="notification-visa-control">
+            <label for="${selectId}" class="notification-visa-label">${escapeHtml(voteLabel)}</label>
+            <select id="${selectId}" class="notification-visa-select" data-id="${notification.id}">
+              <option value="">${escapeHtml(votePlaceholder)}</option>
+              <option value="positive">${escapeHtml(votePositive)}</option>
+              <option value="negative">${escapeHtml(voteNegative)}</option>
+              <option value="canceled">${escapeHtml(voteCanceled)}</option>
+            </select>
+          </div>
+        `;
+      } else {
+        actionsHtml = `
+          <button class="notification-action-btn notification-action-delete" data-id="${notification.id}" title="${escapeHtml(deleteLabel)}" aria-label="${escapeHtml(deleteLabel)}">🗑</button>
+          <button class="notification-action-btn notification-action-done" data-id="${notification.id}" title="${escapeHtml(doneLabel)}" aria-label="${escapeHtml(doneLabel)}">✔</button>
+        `;
+      }
+    }
+
+    const actionsClass = notification.deleted ? 'notification-actions notification-actions--disabled' : 'notification-actions';
+
+    return `
+      <div class="${classes.join(' ')}" data-id="${notification.id}">
+        <div class="notification-header-row">
+          <div class="notification-type-badge">${typeBadge}</div>
+          <time class="notification-date" datetime="${notification.date}">${formatDate(notification.date)}</time>
+        </div>
+        <div class="notification-title">${escapeHtml(notification.title)}</div>
+        <div class="notification-message">${escapeHtml(firstLine)}</div>
+        <div class="${actionsClass}">${actionsHtml}</div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   // Add event listeners to notification items
   document.querySelectorAll('.notification-item').forEach(item => {
     item.addEventListener('click', handleNotificationClick);
+  });
+
+  document.querySelectorAll('.notification-action-delete').forEach(btn => {
+    btn.addEventListener('click', handleNotificationDeleteClick);
+  });
+
+  document.querySelectorAll('.notification-action-done').forEach(btn => {
+    btn.addEventListener('click', handleNotificationDoneClick);
+  });
+
+  document.querySelectorAll('.notification-visa-select').forEach(select => {
+    select.addEventListener('change', handleNotificationVisaChange);
   });
 }
 
@@ -447,22 +505,92 @@ function renderNotifications() {
 function handleNotificationClick(e) {
   const notificationId = e.currentTarget.getAttribute('data-id');
   const notification = state.notifications.find(n => n.id === notificationId);
-  
+
   if (!notification) return;
 
   // Open URL if available
   if (notification.url) {
-    window.open(notification.url, '_blank');
+    let targetUrl = notification.url;
+    if (state.creatioUrl) {
+      try {
+        targetUrl = new URL(notification.url, state.creatioUrl).toString();
+      } catch {
+        const base = state.creatioUrl.replace(/\/$/, '');
+        const path = notification.url.startsWith('/') ? notification.url : `/${notification.url}`;
+        targetUrl = `${base}${path}`;
+      }
+    }
+    window.open(targetUrl, '_blank');
   }
-  
+
   // Mark as read
-  chrome.runtime.sendMessage({ 
-    action: "markAsRead", 
+  chrome.runtime.sendMessage({
+    action: "markAsRead",
     id: notification.id 
   }).then(() => {
     loadNotifications();
   }).catch(error => {
     log('Error marking as read:', error);
+  });
+}
+
+function handleNotificationDeleteClick(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const notificationId = event.currentTarget.getAttribute('data-id');
+  if (!notificationId) return;
+
+  chrome.runtime.sendMessage({
+    action: "deleteNotification",
+    id: notificationId
+  }).then(() => {
+    loadNotifications();
+  }).catch(error => {
+    log('Error deleting notification:', error);
+  });
+}
+
+function handleNotificationDoneClick(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const notificationId = event.currentTarget.getAttribute('data-id');
+  if (!notificationId) return;
+
+  chrome.runtime.sendMessage({
+    action: "markAsRead",
+    id: notificationId
+  }).then(() => {
+    loadNotifications();
+  }).catch(error => {
+    log('Error marking notification as read:', error);
+  });
+}
+
+function handleNotificationVisaChange(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const select = event.currentTarget;
+  const notificationId = select.getAttribute('data-id');
+  const decision = select.value;
+
+  if (!notificationId || !decision) return;
+
+  select.disabled = true;
+
+  chrome.runtime.sendMessage({
+    action: "updateVisaDecision",
+    id: notificationId,
+    decision
+  }).then(() => {
+    loadNotifications();
+  }).catch(error => {
+    log('Error applying visa decision:', error);
+    select.disabled = false;
+  }).finally(() => {
+    select.value = '';
   });
 }
 
@@ -473,6 +601,8 @@ async function loadSettingsToForm() {
       creatioUrl: "",
       notificationTimeout: 0,
       bringToFrontInterval: 20,
+      deliveryMode: "window",
+      popupRepeatCount: "3",
       language: "en"
     });
 
@@ -481,6 +611,8 @@ async function loadSettingsToForm() {
       form.querySelector('#creatioUrl').value = settings.creatioUrl;
       form.querySelector('#notificationTimeout').value = settings.notificationTimeout;
       form.querySelector('#bringToFrontInterval').value = settings.bringToFrontInterval;
+      form.querySelector('#deliveryMode').value = settings.deliveryMode || "window";
+      form.querySelector('#popupRepeatCount').value = String(settings.popupRepeatCount ?? "3");
       form.querySelector('#language').value = settings.language;
     }
 
@@ -498,7 +630,9 @@ async function handleSettingsSubmit(e) {
   const settings = {
     creatioUrl: formData.get('creatioUrl').trim(),
     notificationTimeout: parseInt(formData.get('notificationTimeout')) || 0,
-    bringToFrontInterval: Math.max(5, parseInt(formData.get('bringToFrontInterval')) || 20),
+    bringToFrontInterval: Math.max(0, parseInt(formData.get('bringToFrontInterval')) || 0),
+    deliveryMode: formData.get('deliveryMode') || "window",
+    popupRepeatCount: formData.get('popupRepeatCount') || "3",
     language: formData.get('language')
   };
   
@@ -554,6 +688,8 @@ async function handleResetSettings() {
     creatioUrl: "",
     notificationTimeout: 0,
     bringToFrontInterval: 20,
+    deliveryMode: "window",
+    popupRepeatCount: "3",
     language: "en"
   };
   
@@ -753,6 +889,15 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function formatNotificationLine(message) {
+  if (!message) return '';
+  const firstLine = String(message).split(/\r?\n/)[0] || '';
+  if (firstLine.length > 160) {
+    return `${firstLine.slice(0, 157)}...`;
+  }
+  return firstLine;
 }
 
 function formatDate(dateString) {

@@ -118,7 +118,9 @@ export class NotificationsManager {
     async deleteNotification(id) {
       if (!id) return;
       await this.api.deleteNotification(id);
-      this._cache = (this._cache || []).filter(n => n.Id !== id);
+      this._cache = (this._cache || []).map(n =>
+        n.Id === id ? { ...n, DnDelete: true } : n
+      );
       await this.saveToCache(this._cache);
     }
   
