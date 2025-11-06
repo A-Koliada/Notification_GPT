@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="optionsTitle">Налаштування Creatio Notification</title>
+  <link rel="stylesheet" href="options.css">
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+      min-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-button active" data-tab="settings" data-i18n="settingsTitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span data-i18n="settingsTitle">Налаштування</span>
+      </button>
+      <button class="tab-button" data-tab="instructions" data-i18n="instructionsTitle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
+          <path d="M16 13H8"/>
+          <path d="M16 17H8"/>
+          <path d="M10 9H8"/>
+        </svg>
+        <span data-i18n="instructionsTitle">Інструкція</span>
+      </button>
+    </div>
+
+    <div id="settings" class="tab-content active">
+      <form id="settingsForm">
+        <div class="form-group">
+          <label for="creatioUrl" data-i18n="creatioUrlLabel">URL Creatio:</label>
+          <input type="url" id="creatioUrl" name="creatioUrl" placeholder="https://your-creatio.com" required>
+          <small data-i18n="creatioUrlHelp" data-i18n-title="creatioUrlHelp">URL вашої Creatio системи для отримання сповіщень</small>
+        </div>
+
+        <div class="form-group">
+          <label for="notificationTimeout" data-i18n="notificationTimeoutLabel">Час автозакриття сповіщень (сек):</label>
+          <input type="number" id="notificationTimeout" name="notificationTimeout" min="0" step="1" placeholder="0">
+          <small data-i18n="notificationTimeoutHelp" data-i18n-title="notificationTimeoutHelp">0 = ручне закриття, >0 = автоматичне закриття</small>
+        </div>
+
+        <div class="form-group">
+          <label for="bringToFrontInterval" data-i18n="bringToFrontLabel">Інтервал фокусування вікон (сек):</label>
+          <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="5" step="1" value="20">
+          <small data-i18n="bringToFrontHelp" data-i18n-title="bringToFrontHelp">Частота показу вікон на передній план</small>
+        </div>
+
+        <div class="form-group">
+          <label for="language" data-i18n="languageLabel">Мова інтерфейсу:</label>
+          <select id="language" name="language" class="language-select">
+            <option value="en" data-i18n="languageOptions.en">English</option>
+            <option value="uk" data-i18n="languageOptions.uk">Українська</option>
+            <option value="pl" data-i18n="languageOptions.pl">Polski</option>
+          </select>
+          <small data-i18n="languageHelp" data-i18n-title="languageHelp">Мова інтерфейсу розширення</small>
+        </div>
+
+        <div class="form-buttons">
+          <button type="submit" data-i18n="saveButton">Зберегти</button>
+          <button type="button" id="resetDefaults" data-i18n="resetButton">Скинути</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="instructions" class="tab-content">
+      <div class="instruction-content">
+        <h3 data-i18n="instructionsTitle">Інструкція з використання</h3>
+        <div class="instruction-text">
+          <p data-i18n="instruction1">1. Завантажте та встановіть пакет для Creatio</p>
+          <p data-i18n="instruction2">2. Вкажіть URL вашої системи Creatio</p>
+          <p data-i18n="instruction3">3. Налаштуйте параметри сповіщень</p>
+          <p data-i18n="instruction4">4. Встановіть тривалість відображення</p>
+        </div>
+        
+        <div class="download-container">
+          <a href="https://github.com/A-Koliada/Creatio-Notification-Creatio" 
+             target="_blank" 
+             class="download-link"
+             data-i18n="downloadPackage">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span data-i18n="downloadPackage">Завантажити пакет</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div id="saveMessage" class="save-message" data-i18n="savingText">Збереження...</div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-left">
+        <div class="logo-group">
+          <a href="https://a-koliada.github.io/" class="logo-link logo-k" target="_blank"></a>
+        </div>
+      </div>
+      <span class="footer-version">v.1.0.1</span>
+    </div>
+  </footer>
+
+  <script src="locales.js"></script>
+  <script src="i18n.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

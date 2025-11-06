@@ -1,0 +1,106 @@
+{
+    "manifest_version": 3,
+    "name": "cloud+ Creatio Notifications",
+    "version": "2.4.0",
+    "description": "Отримуйте сповіщення з Creatio CRM у реальному часі з повною синхронізацією та offline-підтримкою",
+    "minimum_chrome_version": "88",
+  
+    "icons": {
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    },
+  
+    "action": {
+      "default_title": "Creatio Notifications",
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "images/icon-16.png",
+        "32": "images/icon-32.png",
+        "48": "images/icon-48.png",
+        "128": "images/icon-128.png"
+      }
+    },
+  
+    "background": {
+      "service_worker": "background.js",
+      "type": "module"
+    },
+  
+    "permissions": [
+      "alarms",
+      "notifications",
+      "storage",
+      "activeTab",
+      "cookies",
+      "tabs",
+      "scripting",
+      "unlimitedStorage"
+    ],
+  
+    "host_permissions": [
+      "https://*.creatio.com/*",
+      "https://api.ipify.org/*",
+      "https://ipapi.co/*"
+    ],
+  
+    "optional_host_permissions": [
+      "<all_urls>"
+    ],
+  
+    "content_scripts": [
+        {
+        "matches": [
+            "https://*.creatio.com/*"
+        ],
+        "exclude_matches": [
+            "https://studio.creatio.com/*"
+        ],
+        "js": ["content.js"],
+        "run_at": "document_start"
+        }
+    ],
+  
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "images/*",
+          "sounds/*",
+          "utils/*",
+          "api/*",
+          "storage/*",
+          "styles/*",
+          "fonts/*"
+        ],
+        "matches": ["https://*.creatio.com/*"]
+      }
+    ],
+  
+    "options_ui": {
+      "page": "options.html",
+      "open_in_tab": true
+    },
+  
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+  
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+C",
+          "mac": "Command+Shift+C"
+        },
+        "description": "Open Creatio Notifications"
+      },
+      "sync_now": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+S",
+          "mac": "Command+Shift+S"
+        },
+        "description": "Sync notifications now"
+      }
+    }
+  }
+  

@@ -1,0 +1,899 @@
+// ============================================
+/* Creatio API (ESM)
+   Версія 2.3.3
+   - Фікс _ensurePath для /DataService
+   - Прогрів сесії перед Insert (SessionService)
+   - Створення DnAppUser з урахуванням Non-nullable рядкових колонок (із $metadata)
+   - Нотифікації: getNotifications, getNotificationsSince, mark read/all read, delete
+*/
+const LOG  = (...a) => console.log("[CreatioAPI]", ...a);
+const WARN = (...a) => console.warn("[CreatioAPI]", ...a);
+
+class CreatioAPI {
+  constructor() {
+    this.baseUrl = "";
+    this.transport = null;
+    this.csrfToken = null;
+    this._knownContactId = null;
+    this._inited = false;
+  }
+
+  // ------------------------------
+  // Init / конфіг
+  // ------------------------------
+  async init(baseUrl) {
+    this.baseUrl = (baseUrl || "").trim().replace(/\s+/g, "").replace(/\/+$/, "");
+    if (!this.baseUrl) { WARN("init failed: empty baseUrl"); return false; }
+    this.csrfToken = true; // content.js підставляє BPMCSRF з cookie в заголовок
+    this._inited = true;
+    LOG("Initialized:", { baseUrl: this.baseUrl, hasCsrf: !!this.csrfToken });
+    return true;
+  }
+  setTransport(fn) { this.transport = fn; }
+  setKnownContactId(id) { this._knownContactId = id || null; }
+
+  // ------------------------------
+  // Helpers
+  // ------------------------------
+  _ensureInited() {
+    if (!this._inited || !this.baseUrl) throw new Error("CreatioAPI is not initialized. Call init(baseUrl) first.");
+    if (!this.transport) throw new Error("CreatioAPI transport not set. Call setTransport(fn).");
+  }
+  _ensurePath(ep) {
+    if (!ep) ep = "/";
+    if (!ep.startsWith("/")) ep = "/" + ep;
+    if (
+      ep.startsWith("/0/") ||
+      ep.startsWith("/odata/") ||
+      ep.startsWith("/ServiceModel/") ||
+      ep.startsWith("/DataService/") ||
+      ep.startsWith("/Nui/")
+    ) {
+      return ep.startsWith("/0/") ? ep : ("/0" + ep);
+    }
+    return ep;
+  }
+  _isLikelyHtml(resObj) {
+    const ct = (resObj && resObj.contentType) || "";
+    const data = resObj && resObj.data;
+    return ct.includes("text/html") || typeof data === "string";
+  }
+  _ensureJsonOrThrow(resObj, label) {
+    if (!resObj) throw new Error((label || "Response") + ": empty");
+    if (this._isLikelyHtml(resObj)) throw new Error((label || "Response") + ": non-JSON (likely login page)");
+    const d = resObj.data;
+    if (d == null || typeof d !== "object") throw new Error((label || "Response") + ": invalid JSON payload");
+    return d;
+  }
+  _cvParam(value, dataValueType) {
+    return { "Expression": { "ExpressionType": 2, "Parameter": { "DataValueType": dataValueType, "Value": value } } };
+  }
+  _cvGuid(guid) { return this._cvParam(guid, 10); }
+  _cvBool(b)    { return this._cvParam(!!b, 12); }
+  _cvText(t)    { return this._cvParam(String(t), 1); }
+
+  async request(endpoint, options = {}) {
+    this._ensureInited();
+    const ep = this._ensurePath(endpoint);
+    const res = await this.transport(ep, options);
+    if (!res) throw new Error(`Empty response for ${ep}`);
+    if (res.ok === false) {
+      const msg = (typeof res.data === "string" && res.data) || res.raw || `HTTP ${res.status}`;
+      throw new Error(`HTTP ${res.status}: ${msg}`);
+    }
+    return res;
+  }
+  async get(endpoint, { headers, params, select, top } = {}) {
+    let ep = endpoint;
+    if (!ep.startsWith("/")) {
+      const q = [];
+      if (typeof top !== "undefined") q.push(`$top=${encodeURIComponent(top)}`);
+      if (select) q.push(`$select=${encodeURIComponent(select)}`);
+      if (params && typeof params === "object") {
+        for (const [k, v] of Object.entries(params)) {
+          if (v == null) continue;
+          q.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+        }
+      }
+      ep = `/odata/${encodeURIComponent(endpoint)}${q.length ? ("?" + q.join("&")) : ""}`;
+    }
+    return this.request(ep, { method: "GET", headers: Object.assign({ "Accept": "application/json" }, headers || {}) });
+  }
+  async post(endpoint, body, headers) {
+    return this.request(endpoint, {
+      method: "POST",
+      headers: Object.assign({ "Accept": "application/json", "Content-Type": "application/json" }, headers || {}),
+      body
+    });
+  }
+  async patch(endpoint, body, headers) {
+    const baseHeaders = { "Accept": "application/json", "Content-Type": "application/json", "If-Match": "*" };
+    return this.request(endpoint, {
+      method: "PATCH",
+      headers: Object.assign(baseHeaders, headers || {}),
+      body
+    });
+  }
+  async _ensureServerSession() {
+    try { await this.post("/ServiceModel/SessionService.svc/GetCurrentUserInfo", {}); } catch {}
+  }
+
+  // ------------------------------
+  // Current User
+  // ------------------------------
+  async getCurrentUserInfo() {
+    if (this._knownContactId) return { ContactId: this._knownContactId, source: "known" };
+    try {
+      const r = await this.post("/ServiceModel/SessionService.svc/GetCurrentUserInfo", {});
+      const j = this._ensureJsonOrThrow(r, "SessionService");
+      const p = j.GetCurrentUserInfoResult || j || {};
+      const cid = p.contactId || p.ContactId;
+      if (cid) return { ContactId: cid, Name: p.name || p.Name || "User", Id: p.id || p.Id, source: "SessionService" };
+    } catch {}
+    try {
+      const r = await this.post("/ServiceModel/ConfigurationService.svc/GetCurrentUserInfo", {});
+      const p = this._ensureJsonOrThrow(r, "ConfigurationService");
+      const cid = p.contactId || p.ContactId;
+      if (cid) return { ContactId: cid, Name: p.name || p.Name || "User", Id: p.id || p.Id, source: "ConfigurationService" };
+    } catch {}
+    try {
+      const body = {
+        RootSchemaName: "Contact",
+        OperationType: 0,
+        Columns: {
+          "Id":   { "Expression": { "ExpressionType": 0, "ColumnPath": "Id"   } },
+          "Name": { "Expression": { "ExpressionType": 0, "ColumnPath": "Name" } }
+        },
+        Filters: {
+          "FilterType": 6,
+          "ComparisonType": 11,
+          "LeftExpression":  { "ExpressionType": 0, "ColumnPath": "Id" },
+          "RightExpression": { "ExpressionType": 1, "FunctionType": 2, "MacrosType": 4 }
+        },
+        IsDistinct: true,
+        UseRecordDeactivation: false
+      };
+      const r = await this.post("/ServiceModel/EntityDataService.svc/Select", body);
+      const j = this._ensureJsonOrThrow(r, "EntityDataService.Select");
+      if (Array.isArray(j.rows) && j.rows.length) {
+        return { ContactId: j.rows[0].Id, Name: j.rows[0].Name, source: "EntityDataService.Select" };
+      }
+    } catch {}
+    try {
+      const r = await this.get("Contact", { top: 1, select: "Id,Name" });
+      const j = this._ensureJsonOrThrow(r, "ODataFallback");
+      if (j && Array.isArray(j.value) && j.value.length) {
+        const c = j.value[0];
+        return { ContactId: c.Id, Name: c.Name, source: "ODataFallback" };
+      }
+    } catch {}
+    throw new Error("Could not get current user info from any method");
+  }
+
+  async getContactId() {
+    const SYSTEM_CONTACTS = [
+      '05ae5b9b-ee27-4a89-b20f-7395cf09232b',
+      '76929f8c-7e15-4c64-bdb0-aed54463bc00',
+      '00000000-0000-0000-0000-000000000000'
+    ];
+  
+    // ВИПРАВЛЕННЯ: використовуємо this._knownContactId
+    if (this._knownContactId && !SYSTEM_CONTACTS.includes(this._knownContactId)) {
+      LOG("✅ Using known ContactId:", this._knownContactId);
+      return this._knownContactId;
+    }
+  
+    LOG("🔍 Getting current user ContactId...");
+  
+    // Спроба 1: SessionService
+    try {
+      const r = await this.request("/0/ServiceModel/SessionService.svc/GetCurrentUserInfo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const j = this._ensureJsonOrThrow(r, "SessionService");
+      const cid = j?.contactId || j?.ContactId;
+      if (cid && !SYSTEM_CONTACTS.includes(cid)) {
+        LOG("✅ ContactId from SessionService:", cid);
+        this._knownContactId = cid;
+        return cid;
+      }
+      LOG("⚠️ SessionService returned system contact:", cid);
+    } catch (e) {
+      LOG("SessionService failed:", e?.message);
+    }
+  
+    // Спроба 2: ConfigurationService
+    try {
+      const r = await this.request("/0/ServiceModel/ConfigurationService.svc/GetCurrentUserInfo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const j = this._ensureJsonOrThrow(r, "ConfigurationService");
+      const cid = j?.contactId || j?.ContactId;
+      if (cid && !SYSTEM_CONTACTS.includes(cid)) {
+        LOG("✅ ContactId from ConfigurationService:", cid);
+        this._knownContactId = cid;
+        return cid;
+      }
+      LOG("⚠️ ConfigurationService returned system contact:", cid);
+    } catch (e) {
+      LOG("ConfigurationService failed:", e?.message);
+    }
+  
+    // Спроба 3: EntityDataService
+    try {
+      const r = await this.request("/0/ServiceModel/EntityDataService.svc/Select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rootSchemaName: "SysAdminUnit",
+          operationType: 0,
+          columns: { items: { ContactId: { path: "Contact.Id" } } },
+          filters: { items: { isCurrentUser: { comparisonType: 3, leftExpression: { columnPath: "Id" }, rightExpression: { parameter: { dataValueType: 4, value: "CurrentUser" } } } } }
+        })
+      });
+      const j = this._ensureJsonOrThrow(r, "EntityDataService");
+      const cid = j?.rows?.[0]?.ContactId;
+      if (cid && !SYSTEM_CONTACTS.includes(cid)) {
+        LOG("✅ ContactId from EntityDataService:", cid);
+        this._knownContactId = cid;
+        return cid;
+      }
+      LOG("⚠️ EntityDataService returned system contact:", cid);
+    } catch (e) {
+      LOG("EntityDataService failed:", e?.message);
+    }
+  
+    // Остання спроба: повернути збережений ContactId
+    if (this._knownContactId) {
+      LOG("⚠️ Returning stored ContactId (may be system):", this._knownContactId);
+      return this._knownContactId;
+    }
+  
+    LOG("❌ Could not get valid ContactId");
+    throw new Error("Cannot determine current user ContactId");
+  }
+
+  // ------------------------------
+  // DnAppUser
+  // ------------------------------
+// ============================================
+// ФІНАЛЬНИЙ getDnAppUser (БЕЗ DnContactId в $select)
+// Замінити в creatio-api.js
+// ============================================
+
+async getDnAppUser(contactId) {
+  const cid = contactId || await this.getContactId();
+  LOG("getDnAppUser: searching for contactId =", cid);
+
+  // ✅ ВИПРАВЛЕНО: Прибрано DnContactId з $select (поле не існує)
+  const odataFilters = [
+    { filter: `DnContact/Id eq ${cid}`, name: "DnContact/Id (Lookup)" },
+    { filter: `ContactId eq ${cid}`, name: "ContactId (Alternative)" },
+    { filter: `Contact/Id eq ${cid}`, name: "Contact/Id (No prefix)" }
+  ];
+
+  LOG(`📋 Trying ${odataFilters.length} OData filter variants...`);
+  
+  for (const {filter, name} of odataFilters) {
+    try {
+      // ✅ ВИПРАВЛЕНО: Прибрано DnContactId з select
+      const path = `/odata/DnAppUser?$filter=${filter}&$top=1&$select=Id,DnSessionCount,DnLastActivityOn,DnIsActive`;
+      LOG(`  🔍 Attempt OData: ${name}`);
+      LOG(`     URL: ${path}`);
+      
+      const r = await this.request(path, { 
+        method: "GET", 
+        headers: { "Accept": "application/json" } 
+      });
+      
+      const j = this._ensureJsonOrThrow(r, "OData DnAppUser");
+      LOG(`     ✅ Response received:`, j);
+      
+      if (j?.value?.length) {
+        LOG(`✅ FOUND existing DnAppUser via OData (${name}):`, j.value[0]);
+        return j.value[0];
+      } else {
+        LOG(`     ⚠️ Empty result (no records match filter)`);
+      }
+    } catch (e) {
+      LOG(`     ❌ Failed: ${e?.message || e}`);
+    }
+  }
+
+  // ✅ Спроба через всі записи (якщо таблиця пуста або має мало записів)
+  try {
+    LOG("🔍 Fetching ALL records to find match...");
+    const r = await this.request("/odata/DnAppUser?$top=100&$select=Id,DnContact,DnSessionCount,DnLastActivityOn,DnIsActive", { 
+      method: "GET", 
+      headers: { "Accept": "application/json" } 
+    });
+    const j = this._ensureJsonOrThrow(r, "DnAppUser all records");
+    
+    if (j?.value?.length) {
+      LOG(`   📊 Found ${j.value.length} total records, searching for match...`);
+      
+      // Шукаємо запис з DnContact.Id = cid
+      const match = j.value.find(record => record.DnContact?.Id === cid);
+      
+      if (match) {
+        LOG(`✅ FOUND matching record in full scan:`, match);
+        return match;
+      } else {
+        LOG(`   ⚠️ No matching record found among ${j.value.length} records`);
+      }
+    } else {
+      LOG(`   ℹ️ Table is empty (0 records)`);
+    }
+  } catch (e) {
+    WARN("   ❌ Full scan failed:", e?.message);
+  }
+
+  LOG("❌ No existing DnAppUser found for contactId:", cid);
+  return null;
+}
+
+
+  // УСЕРЕДИНІ класу CreatioAPI
+ // FIXED createDnAppUser method for creatio-api.js
+// Replace the existing createDnAppUser method with this version
+
+// ============================================
+// ВИПРАВЛЕНИЙ createDnAppUser (НЕ кидає помилку)
+// Замінити в creatio-api.js (метод createDnAppUser)
+// ============================================
+
+// ============================================
+// ВИПРАВЛЕНИЙ createDnAppUser
+// Замінити в /api/creatio-api.js (починаючи з рядка 241)
+// ============================================
+
+async createDnAppUser(fields) {
+  LOG("createDnAppUser: fields =", fields);
+
+  const contactId =
+    fields?.DnContactId ||
+    fields?.ContactId ||
+    fields?.DnContact?.Id ||
+    await this.getContactId();
+  
+  if (!contactId) throw new Error("createDnAppUser: no ContactId");
+
+  // ✅ ВСІ ПОЛЯ включаючи обов'язкові Nullable="false"
+  const userData = {
+    // Lookup на Contact
+    DnContactId: contactId,
+    
+    // Базові поля
+    DnFirstSeenOn: fields?.DnFirstSeenOn || new Date().toISOString(),
+    DnLastActivityOn: fields?.DnLastActivityOn || new Date().toISOString(),
+    
+    // ✅ ОБОВ'ЯЗКОВІ STRING поля (Nullable="false")
+    DnNotes: fields?.DnNotes || "",
+    DnLastIp: fields?.DnLastIp || "",
+    DnLastUserAgent: fields?.DnLastUserAgent || navigator.userAgent || "",
+    DnTimeZone: fields?.DnTimeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Kyiv",
+    DnLocale: fields?.DnLocale || navigator.language || "uk-UA",
+    DnWebPushEndpoint: fields?.DnWebPushEndpoint || "",
+    DnBrowserFingerprint: fields?.DnBrowserFingerprint || "",
+    DnExternalUserId: fields?.DnExternalUserId || "",
+    
+    // Статус
+    DnIsActive: fields?.DnIsActive !== undefined ? fields.DnIsActive : true,
+    DnSessionCount: fields?.DnSessionCount || 1,
+    
+    // Дні до деактивації/видалення
+    DnDaysUntilDeactivation: fields?.DnDaysUntilDeactivation || 14,
+    DnDaysUntilDelete: fields?.DnDaysUntilDelete || 30,
+    
+    // Налаштування нотифікацій
+    DnNotificationsEnabled: fields?.DnNotificationsEnabled !== undefined ? fields.DnNotificationsEnabled : true,
+    DnReceiveNotifications: fields?.DnReceiveNotifications !== undefined ? fields.DnReceiveNotifications : true,
+    DnReceiveNotificationsApproval: fields?.DnReceiveNotificationsApproval !== undefined ? fields.DnReceiveNotificationsApproval : true,
+    DnReceiveNotificationsEmail: fields?.DnReceiveNotificationsEmail !== undefined ? fields.DnReceiveNotificationsEmail : true,
+    DnReceiveNotificationsFeed: fields?.DnReceiveNotificationsFeed !== undefined ? fields.DnReceiveNotificationsFeed : true,
+    DnReceiveNotificationsProcess: fields?.DnReceiveNotificationsProcess !== undefined ? fields.DnReceiveNotificationsProcess : true,
+    DnReceiveNotificationsTask: fields?.DnReceiveNotificationsTask !== undefined ? fields.DnReceiveNotificationsTask : true,
+    
+    // Web Push
+    DnWebPushAllowed: fields?.DnWebPushAllowed !== undefined ? fields.DnWebPushAllowed : false
+  };
+
+  LOG("Creating DnAppUser with all required fields:", userData);
+
+  // Метод 1: OData з прямими ID (найнадійніший)
+  try {
+    LOG("Trying OData insert...");
+    
+    await this.post("/odata/DnAppUser", userData);
+    LOG("✅ OData insert SUCCESS");
+    
+    // Даємо час на збереження
+    await new Promise(r => setTimeout(r, 500));
+    
+    const created = await this.getDnAppUser(contactId);
+    if (created?.Id) {
+      LOG("✅ DnAppUser created with ID:", created.Id);
+      return created;
+    }
+  } catch (e) {
+    WARN("OData insert failed:", e?.message || e);
+  }
+
+  // Метод 2: EntityDataService (fallback)
+  try {
+    LOG("Trying EntityDataService insert...");
+    
+    const edsBody = {
+      RootSchemaName: "DnAppUser",
+      ColumnValues: {
+        Items: {
+          "DnContact": this._cvGuid(contactId),
+          "DnFirstSeenOn": this._cvParam(userData.DnFirstSeenOn, 8),
+          "DnLastActivityOn": this._cvParam(userData.DnLastActivityOn, 8),
+          "DnNotes": this._cvText(userData.DnNotes),
+          "DnLastIp": this._cvText(userData.DnLastIp),
+          "DnLastUserAgent": this._cvText(userData.DnLastUserAgent),
+          "DnTimeZone": this._cvText(userData.DnTimeZone),
+          "DnLocale": this._cvText(userData.DnLocale),
+          "DnWebPushEndpoint": this._cvText(userData.DnWebPushEndpoint),
+          "DnBrowserFingerprint": this._cvText(userData.DnBrowserFingerprint),
+          "DnExternalUserId": this._cvText(userData.DnExternalUserId),
+          "DnIsActive": this._cvBool(userData.DnIsActive),
+          "DnSessionCount": this._cvParam(userData.DnSessionCount, 4),
+          "DnNotificationsEnabled": this._cvBool(userData.DnNotificationsEnabled),
+          "DnWebPushAllowed": this._cvBool(userData.DnWebPushAllowed)
+        }
+      }
+    };
+    
+    await this.post("/ServiceModel/EntityDataService.svc/Insert", edsBody);
+    LOG("✅ EntityDataService insert SUCCESS");
+    
+    await new Promise(r => setTimeout(r, 500));
+    
+    const created = await this.getDnAppUser(contactId);
+    if (created?.Id) {
+      LOG("✅ DnAppUser created with ID:", created.Id);
+      return created;
+    }
+  } catch (e) {
+    WARN("EntityDataService insert failed:", e?.message || e);
+  }
+
+  WARN("❌ All create methods failed");
+  return null;
+}
+
+  
+ // ------------------------------
+// Update DnAppUser
+// ------------------------------
+// ============================================
+// ФІНАЛЬНИЙ updateDnAppUser (згідно з вашим JSON)
+// Замінити в creatio-api.js
+// ============================================
+
+async updateDnAppUser(dnAppUserId, fields) {
+  LOG("updateDnAppUser: id =", dnAppUserId, "fields =", fields);
+  
+  if (!dnAppUserId) throw new Error("updateDnAppUser: no DnAppUser ID");
+  
+  // ✅ Відповідно до вашого JSON приклад для оновлення
+  const updateData = {
+    DnLastActivityOn: fields?.DnLastActivityOn || new Date().toISOString(),
+    DnLastIp: fields?.DnLastIp,
+    DnLastUserAgent: fields?.DnLastUserAgent,
+    DnSessionCount: fields?.DnSessionCount,
+    DnIsActive: fields?.DnIsActive,
+    DnTimeZone: fields?.DnTimeZone,
+    DnLocale: fields?.DnLocale,
+    DnDaysUntilDeactivation: fields?.DnDaysUntilDeactivation,
+    DnDaysUntilDelete: fields?.DnDaysUntilDelete,
+    DnNotificationsEnabled: fields?.DnNotificationsEnabled,
+    DnReceiveNotifications: fields?.DnReceiveNotifications,
+    DnReceiveNotificationsApproval: fields?.DnReceiveNotificationsApproval,
+    DnReceiveNotificationsEmail: fields?.DnReceiveNotificationsEmail,
+    DnReceiveNotificationsFeed: fields?.DnReceiveNotificationsFeed,
+    DnReceiveNotificationsProcess: fields?.DnReceiveNotificationsProcess,
+    DnReceiveNotificationsTask: fields?.DnReceiveNotificationsTask,
+    DnWebPushAllowed: fields?.DnWebPushAllowed
+  };
+  
+  // Видаляємо undefined поля
+  Object.keys(updateData).forEach(key => {
+    if (updateData[key] === undefined) delete updateData[key];
+  });
+  
+  LOG("📤 Updating DnAppUser with fields:", JSON.stringify(updateData, null, 2));
+  
+  // ✅ ВИПРАВЛЕНО: без guid' в URL
+  try {
+    LOG("🔍 Trying OData PATCH...");
+    await this.patch(`/odata/DnAppUser(${dnAppUserId})`, updateData);
+    LOG("✅ DnAppUser updated via OData");
+    return true;
+  } catch (e) {
+    WARN("❌ OData PATCH failed:", e?.message);
+    LOG("   💡 Full error:", e);
+  }
+  
+  return false;
+}
+
+  // ------------------------------
+  // Notifications
+  // ------------------------------
+_mapNotification(raw) {
+    const id = raw.Id || raw.id || raw.PrimaryColumnValue || raw.primaryColumnValue || null;
+    const title = raw.Title || raw.Name || raw.Caption || raw.Subject || raw.DnTitle || raw.dnTitle || null;
+    const body  = raw.Body || raw.Message || raw.Text || raw.Description || raw.DnBody || raw.dnBody || null;
+    const created = raw.CreatedOn || raw.createdOn || raw.SysCreatedOn || raw.sysCreatedOn || null;
+    const isRead = (typeof raw.DnIsRead === "boolean" ? raw.DnIsRead : undefined)
+                ?? (typeof raw.IsRead === "boolean" ? raw.IsRead : undefined)
+                ?? (typeof raw.Read   === "boolean" ? raw.Read   : undefined)
+                ?? false;
+    return { Id: id, Title: title, Body: body, CreatedOn: created, IsRead: !!isRead, Raw: raw };
+}
+
+async getNotifications({ onlyUnread = false, limit = 100 } = {}) {
+    const contactId = await this.getContactId();
+
+    // OData
+    try {
+      const arr = await this._tryGetODataNotifications(contactId, { onlyUnread, limit });
+      if (arr?.length) return arr.map(n => this._mapNotification(n));
+    } catch (e) { WARN("OData getNotifications failed:", e?.message || e); }
+
+    // EDS
+    try {
+      const arr = await this._tryGetEdsNotifications(contactId, { onlyUnread, limit });
+      if (arr?.length) return arr.map(n => this._mapNotification(n));
+    } catch (e) { WARN("EDS getNotifications failed:", e?.message || e); }
+
+    return [];
+  }
+
+  async getNotificationsSince(sinceIso, options = {}) {
+    const sinceTs = Date.parse(sinceIso || "") || 0;
+
+    // (спроба OData фільтра по CreatedOn)
+    try {
+      const contactId = await this.getContactId();
+      const baseFilters = [
+        `DnRecipientId eq guid'${contactId}'`,
+        `RecipientId eq guid'${contactId}'`,
+        `ContactId eq guid'${contactId}'`,
+        `DnContactId eq guid'${contactId}'`,
+        `DnRecipient/Id eq guid'${contactId}'`,
+        `Recipient/Id eq guid'${contactId}'`,
+        `Contact/Id eq guid'${contactId}'`
+      ];
+      const tsIso = new Date(sinceTs).toISOString();
+      const byDate = [`CreatedOn gt ${tsIso}`, `SysCreatedOn gt ${tsIso}`];
+
+      const select = [
+        "Id", "Title", "Name", "Caption", "Subject",
+        "Body", "Message", "Text", "Description",
+        "CreatedOn", "SysCreatedOn",
+        "IsRead", "DnIsRead", "Read"
+      ].join(",");
+
+      for (const fc of baseFilters) {
+        for (const fd of byDate) {
+          const both = encodeURIComponent(`${fc} and ${fd}`);
+          const path = `/odata/DnNotifications?$top=200&$orderby=CreatedOn desc&$select=${encodeURIComponent(select)}&$filter=${both}`;
+          const r = await this.request(path, { method: "GET", headers: { "Accept": "application/json" } });
+          const j = this._ensureJsonOrThrow(r, "OData DnNotifications since");
+          if (j?.value?.length) return j.value.map(n => this._mapNotification(n));
+        }
+      }
+    } catch {}
+
+    // фолбек — беремо все і фільтруємо на клієнті
+    const all = await this.getNotifications(options);
+    return (all || []).filter(n => {
+      const d = n.CreatedOn || (n.Raw && (n.Raw.CreatedOn || n.Raw.SysCreatedOn)) || "";
+      return (Date.parse(d) || 0) > sinceTs;
+    });
+  }
+
+  async _tryGetODataNotifications(contactId, { onlyUnread, limit }) {
+    const filtersByContact = [
+      `DnRecipientId eq guid'${contactId}'`,
+      `RecipientId eq guid'${contactId}'`,
+      `ContactId eq guid'${contactId}'`,
+      `DnContactId eq guid'${contactId}'`,
+      `DnRecipient/Id eq guid'${contactId}'`,
+      `Recipient/Id eq guid'${contactId}'`,
+      `Contact/Id eq guid'${contactId}'`
+    ];
+    const unreadFilters = ['DnIsRead eq false', 'IsRead eq false', 'Read eq false'];
+    const top = Math.max(1, Math.min(500, Number(limit) || 100));
+    const select = [
+      "Id", "Title", "Name", "Caption", "Subject",
+      "Body", "Message", "Text", "Description",
+      "CreatedOn", "SysCreatedOn",
+      "IsRead", "DnIsRead", "Read"
+    ].join(",");
+
+    for (const fc of filtersByContact) {
+      let query = `/odata/DnNotifications?$top=${top}&$orderby=CreatedOn desc&$select=${encodeURIComponent(select)}&$filter=${encodeURIComponent(fc)}`;
+      try {
+        const r = await this.request(query, { method: "GET", headers: { "Accept": "application/json" } });
+        const j = this._ensureJsonOrThrow(r, "OData DnNotifications");
+        if (j?.value?.length) return j.value;
+      } catch {}
+      if (onlyUnread) {
+        for (const fu of unreadFilters) {
+          const both = `${fc} and ${fu}`;
+          query = `/odata/DnNotifications?$top=${top}&$orderby=CreatedOn desc&$select=${encodeURIComponent(select)}&$filter=${encodeURIComponent(both)}`;
+          try {
+            const r2 = await this.request(query, { method: "GET", headers: { "Accept": "application/json" } });
+            const j2 = this._ensureJsonOrThrow(r2, "OData DnNotifications (unread)");
+            if (j2?.value?.length) return j2.value;
+          } catch {}
+        }
+      }
+    }
+    return [];
+  }
+
+  async _tryGetEdsNotifications(contactId, { onlyUnread, limit }) {
+    const top = Math.max(1, Math.min(500, Number(limit) || 100));
+    const contactColumnCandidates = ["DnRecipient", "Recipient", "Contact", "DnContact"];
+    const unreadColumnCandidates = ["DnIsRead", "IsRead", "Read"];
+
+    const bodies = [];
+    for (const contactCol of contactColumnCandidates) {
+      const baseFilter = {
+        "FilterType": 6,
+        "LogicalOperation": 0,
+        "Items": {
+          "ByContact": {
+            "FilterType": 1,
+            "ComparisonType": 11,
+            "LeftExpression": { "ExpressionType": 0, "ColumnPath": contactCol },
+            "RightExpression": { "ExpressionType": 1, "FunctionType": 2, "MacrosType": 4 }
+          }
+        }
+      };
+      bodies.push({
+        RootSchemaName: "DnNotifications",
+        OperationType: 0,
+        Columns: {
+          "Id":            { "Expression": { "ExpressionType": 0, "ColumnPath": "Id" } },
+          "Title":         { "Expression": { "ExpressionType": 0, "ColumnPath": "Title" } },
+          "Name":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Name" } },
+          "Caption":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Caption" } },
+          "Subject":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Subject" } },
+          "Body":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Body" } },
+          "Message":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Message" } },
+          "Text":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Text" } },
+          "Description":   { "Expression": { "ExpressionType": 0, "ColumnPath": "Description" } },
+          "CreatedOn":     { "Expression": { "ExpressionType": 0, "ColumnPath": "CreatedOn" } },
+          "SysCreatedOn":  { "Expression": { "ExpressionType": 0, "ColumnPath": "SysCreatedOn" } },
+          "IsRead":        { "Expression": { "ExpressionType": 0, "ColumnPath": "IsRead" } },
+          "DnIsRead":      { "Expression": { "ExpressionType": 0, "ColumnPath": "DnIsRead" } },
+          "Read":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Read" } }
+        },
+        Filters: baseFilter,
+        IsDistinct: true,
+        RowsOffset: 0,
+        RowsLimit: top,
+        IsPageable: true,
+        UseRecordDeactivation: false
+      });
+
+      if (onlyUnread) {
+        const unreadFilter = JSON.parse(JSON.stringify(baseFilter));
+        unreadFilter.Items.Unread = {
+          "FilterType": 1,
+          "ComparisonType": 3,
+          "LeftExpression": { "ExpressionType": 0, "ColumnPath": unreadColumnCandidates[0] }, // сервер сам підбере
+          "RightExpression": { "ExpressionType": 2, "Parameter": { "DataValueType": 12, "Value": false } }
+        };
+        bodies.push({
+          RootSchemaName: "DnNotifications",
+          OperationType: 0,
+          Columns: {
+            "Id":            { "Expression": { "ExpressionType": 0, "ColumnPath": "Id" } },
+            "Title":         { "Expression": { "ExpressionType": 0, "ColumnPath": "Title" } },
+            "Name":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Name" } },
+            "Caption":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Caption" } },
+            "Subject":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Subject" } },
+            "Body":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Body" } },
+            "Message":       { "Expression": { "ExpressionType": 0, "ColumnPath": "Message" } },
+            "Text":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Text" } },
+            "Description":   { "Expression": { "ExpressionType": 0, "ColumnPath": "Description" } },
+            "CreatedOn":     { "Expression": { "ExpressionType": 0, "ColumnPath": "CreatedOn" } },
+            "SysCreatedOn":  { "Expression": { "ExpressionType": 0, "ColumnPath": "SysCreatedOn" } },
+            "IsRead":        { "Expression": { "ExpressionType": 0, "ColumnPath": "IsRead" } },
+            "DnIsRead":      { "Expression": { "ExpressionType": 0, "ColumnPath": "DnIsRead" } },
+            "Read":          { "Expression": { "ExpressionType": 0, "ColumnPath": "Read" } }
+          },
+          Filters: unreadFilter,
+          IsDistinct: true,
+          RowsOffset: 0,
+          RowsLimit: top,
+          IsPageable: true,
+          UseRecordDeactivation: false
+        });
+      }
+    }
+
+    for (const body of bodies) {
+      try {
+        const r = await this.post("/ServiceModel/EntityDataService.svc/Select", body);
+        const j = this._ensureJsonOrThrow(r, "EntityDataService.Select DnNotifications");
+        if (Array.isArray(j.rows) && j.rows.length) return j.rows;
+      } catch {}
+    }
+    return [];
+  }
+
+  // Позначити як прочитане
+  async setNotificationRead(id, isRead = true) {
+    if (!id) return;
+
+    // OData PATCH (пробуємо різні назви)
+    const candidates = [{ DnIsRead: !!isRead }, { IsRead: !!isRead }, { Read: !!isRead }];
+    for (const payload of candidates) {
+      try {
+        await this.patch(`/odata/DnNotifications(${encodeURIComponent(`guid'${id}'`)})`, payload);
+        return true;
+      } catch {}
+    }
+
+    // EDS Update — також з різними назвами
+    const itemsArr = [
+      { "DnIsRead": this._cvBool(!!isRead) },
+      { "IsRead": this._cvBool(!!isRead) },
+      { "Read": this._cvBool(!!isRead) }
+    ];
+    for (const Items of itemsArr) {
+      try {
+        const body = { RootSchemaName: "DnNotifications", PrimaryColumnValue: id, ColumnValues: { Items } };
+        await this.post("/ServiceModel/EntityDataService.svc/Update", body);
+        return true;
+      } catch {}
+    }
+    return false;
+  }
+
+  // Позначити всі як прочитані (простий варіант)
+  async setAllNotificationsRead(contactId) {
+    const list = await this.getNotifications({ onlyUnread: true, limit: 500 });
+    let ok = 0;
+    for (const n of list) {
+      const done = await this.setNotificationRead(n.Id, true);
+      if (done) ok++;
+    }
+    return ok;
+  }
+
+  // Видалення
+  async deleteNotification(id) {
+    if (!id) return;
+
+    // OData DELETE
+    try {
+      await this.request(`/odata/DnNotifications(${encodeURIComponent(`guid'${id}'`)})`, { method: "DELETE", headers: { "If-Match": "*" } });
+      return true;
+    } catch {}
+
+    // EDS Delete
+    try {
+      const body = { RootSchemaName: "DnNotifications", PrimaryColumnValue: id };
+      await this.post("/ServiceModel/EntityDataService.svc/Delete", body);
+      return true;
+    } catch {}
+    return false;
+  }
+
+  // Опційно: оновлення рішення по візі
+  async setVisaDecision(id, decision) {
+    // під свої назви колонок (приклад)
+    const map = {
+      approve: true,
+      approved: true,
+      yes: true,
+      true: true,
+      reject: false,
+      rejected: false,
+      no: false,
+      false: false
+    };
+    const val = (typeof decision === "boolean") ? decision : (map[String(decision).toLowerCase()]);
+    if (typeof val !== "boolean") return;
+
+    // спроба через OData (колонка може мати іншу назву у вашій схемі)
+    const candidates = [{ DnApproved: val }, { Approved: val }, { Decision: val }];
+    for (const payload of candidates) {
+      try {
+        await this.patch(`/odata/DnNotifications(${encodeURIComponent(`guid'${id}'`)})`, payload);
+        return true;
+      } catch {}
+    }
+
+    // EDS як фолбек
+    const itemsArr = [
+      { "DnApproved": this._cvBool(val) },
+      { "Approved": this._cvBool(val) },
+      { "Decision": this._cvBool(val) }
+    ];
+    for (const Items of itemsArr) {
+      try {
+        const body = { RootSchemaName: "DnNotifications", PrimaryColumnValue: id, ColumnValues: { Items } };
+        await this.post("/ServiceModel/EntityDataService.svc/Update", body);
+        return true;
+      } catch {}
+    }
+    return false;
+  }
+
+// ============================================
+  // DEBUGGING METHODS (додано для діагностики)
+  // ============================================
+  
+  async checkDnAppUserSchema() {
+    try {
+      const result = await this.get("DnAppUser/$metadata");
+      LOG("DnAppUser schema exists:", result);
+      return true;
+    } catch (e) {
+      WARN("DnAppUser schema check failed:", e?.message);
+      return false;
+    }
+  }
+
+  async verifyContactExists(contactId) {
+    try {
+      const result = await this.get(`Contact(${contactId})`, { select: "Id,Name" });
+      const data = this._ensureJsonOrThrow(result, "Contact verification");
+      LOG("Contact verified:", data);
+      return !!data.Id;
+    } catch (e) {
+      WARN("Contact verification failed:", e?.message);
+      return false;
+    }
+  }
+
+  async getDnAppUserMetadata() {
+    try {
+      const result = await this.request("/odata/$metadata?$format=json", { 
+        method: "GET",
+        headers: { "Accept": "application/json" }
+      });
+      const data = result.data;
+      
+      if (data && typeof data === 'object') {
+        LOG("Metadata retrieved. Search for DnAppUser schema:", data);
+        return data;
+      }
+    } catch (e) {
+      WARN("Metadata fetch failed:", e?.message);
+    }
+    
+    try {
+      const result = await this.get("DnAppUser", { top: 1 });
+      const data = this._ensureJsonOrThrow(result, "DnAppUser sample");
+      if (data.value && data.value[0]) {
+        LOG("Sample DnAppUser record structure:", Object.keys(data.value[0]));
+        return data.value[0];
+      }
+    } catch (e) {
+      WARN("Sample record fetch failed:", e?.message);
+    }
+    
+    return null;
+  }
+// ==============================
+
+}
+
+export const creatioAPI = new CreatioAPI();
+export default creatioAPI;

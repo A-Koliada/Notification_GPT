@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notification</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 400px;
+      height: 250px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .notification-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      position: relative;
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .notification-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+      }
+    }
+
+    .notification-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
+    }
+
+    .close-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+    }
+
+    .notification-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .notification-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.3;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      animation: fadeInUp 0.4s ease-out 0.1s both;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .notification-message {
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0.95;
+      max-height: 60px;
+      overflow-y: auto;
+      animation: fadeInUp 0.4s ease-out 0.2s both;
+    }
+
+    .notification-message::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .notification-message::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+    }
+
+    .notification-meta {
+      font-size: 12px;
+      opacity: 0.8;
+      animation: fadeInUp 0.4s ease-out 0.3s both;
+    }
+
+    .notification-actions {
+      display: flex;
+      gap: 8px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      animation: fadeInUp 0.4s ease-out 0.4s both;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-btn:active {
+      transform: translateY(0);
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: white;
+    }
+
+    .action-btn.primary {
+      background: rgba(255, 255, 255, 0.95);
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .action-btn.primary:hover {
+      background: white;
+    }
+
+    /* Loading state */
+    .loading {
+      position: absolute;
+      inset: 0;
+      background: rgba(102, 126, 234, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .loading.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="notification-container">
+    <div class="notification-header">
+      <div class="notification-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+        </svg>
+      </div>
+      <button class="close-btn" id="closeBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="notification-content">
+      <div class="notification-title" id="notificationTitle">Loading...</div>
+      <div class="notification-message" id="notificationMessage">Please wait...</div>
+      <div class="notification-meta" id="notificationMeta">Just now</div>
+    </div>
+
+    <div class="notification-actions">
+      <button class="action-btn" id="markReadBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+        </svg>
+        Mark as read
+      </button>
+      <button class="action-btn primary" id="openBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3"/>
+        </svg>
+        Open
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Parse URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const notificationId = params.get('id');
+    const title = decodeURIComponent(params.get('title') || 'Notification');
+    const message = decodeURIComponent(params.get('message') || '');
+    const date = params.get('date');
+    const url = decodeURIComponent(params.get('url') || '');
+
+    // Set content
+    document.getElementById('notificationTitle').textContent = title;
+    document.getElementById('notificationMessage').textContent = message;
+    document.getElementById('notificationMeta').textContent = formatDate(date);
+
+    // Event listeners
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      window.close();
+    });
+
+    document.getElementById('markReadBtn').addEventListener('click', async () => {
+      showLoading();
+      try {
+        await chrome.runtime.sendMessage({
+          action: 'markAsRead',
+          id: notificationId
+        });
+        window.close();
+      } catch (error) {
+        console.error('Mark as read error:', error);
+        hideLoading();
+      }
+    });
+
+    document.getElementById('openBtn').addEventListener('click', () => {
+      if (url) {
+        chrome.tabs.create({ url: url });
+        window.close();
+      }
+    });
+
+    // Helper functions
+    function formatDate(dateString) {
+      if (!dateString) return 'Just now';
+      
+      const date = new Date(dateString);
+      const now = new Date();
+      const diff = now - date;
+      
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      
+      return date.toLocaleDateString();
+    }
+
+    function showLoading() {
+      document.getElementById('loading').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.remove('active');
+    }
+
+    // Auto-close after 30 seconds if not interacted
+    let autoCloseTimeout = setTimeout(() => {
+      window.close();
+    }, 30000);
+
+    // Reset timeout on any interaction
+    document.body.addEventListener('click', () => {
+      clearTimeout(autoCloseTimeout);
+      autoCloseTimeout = setTimeout(() => {
+        window.close();
+      }, 30000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistics - Creatio Notifications</title>
+  <link rel="stylesheet" href="statistics.css">
+</head>
+<body>
+  <!-- ============================================ -->
+  <!-- HEADER -->
+  <!-- ============================================ -->
+  <header class="stats-header">
+    <div class="header-content">
+      <button class="back-btn" id="backBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/>
+        </svg>
+        Back
+      </button>
+      <div class="header-title">
+        <h1>📊 Statistics</h1>
+        <p>Your notification insights</p>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================================ -->
+  <!-- TIME RANGE SELECTOR -->
+  <!-- ============================================ -->
+  <div class="time-range">
+    <button class="range-btn active" data-range="7">7 Days</button>
+    <button class="range-btn" data-range="30">30 Days</button>
+    <button class="range-btn" data-range="90">90 Days</button>
+    <button class="range-btn" data-range="all">All Time</button>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- QUICK STATS CARDS -->
+  <!-- ============================================ -->
+  <div class="quick-stats">
+    <div class="stat-card">
+      <div class="stat-icon total">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Total Notifications</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-change positive" id="statTotalChange">+0%</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon unread">
+        <svg viewBox="0 0 24 24">
+          <path d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Unread</div>
+        <div class="stat-value" id="statUnread">0</div>
+        <div class="stat-change" id="statUnreadChange">0%</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon response">
+        <svg viewBox="0 0 24 24">
+          <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Avg Response Time</div>
+        <div class="stat-value" id="statResponseTime">0h</div>
+        <div class="stat-change positive" id="statResponseChange">-15%</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon rate">
+        <svg viewBox="0 0 24 24">
+          <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Read Rate</div>
+        <div class="stat-value" id="statReadRate">0%</div>
+        <div class="stat-change positive" id="statRateChange">+5%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- CHARTS SECTION -->
+  <!-- ============================================ -->
+  <div class="charts-container">
+    
+    <!-- Notifications Over Time -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>📈 Notifications Over Time</h2>
+        <div class="chart-legend">
+          <span class="legend-item">
+            <span class="legend-dot received"></span>
+            Received
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot read"></span>
+            Read
+          </span>
+        </div>
+      </div>
+      <div class="chart-body">
+        <canvas id="timelineChart" width="800" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- Notification Types -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>🏷️ By Type</h2>
+      </div>
+      <div class="chart-body">
+        <canvas id="typesChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- Response Times -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>⏱️ Response Times</h2>
+      </div>
+      <div class="chart-body">
+        <div class="response-bars" id="responseBars">
+          <!-- Generated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Hours -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2>🕐 Peak Hours</h2>
+      </div>
+      <div class="chart-body">
+        <canvas id="hoursChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================ -->
+  <!-- INSIGHTS SECTION -->
+  <!-- ============================================ -->
+  <div class="insights-section">
+    <h2>💡 Insights & Recommendations</h2>
+    <div class="insights-grid" id="insightsGrid">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- EXPORT SECTION -->
+  <!-- ============================================ -->
+  <div class="export-section">
+    <button class="export-btn" id="exportPdfBtn">
+      <svg viewBox="0 0 24 24">
+        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+      </svg>
+      Export as PDF
+    </button>
+    <button class="export-btn" id="exportCsvBtn">
+      <svg viewBox="0 0 24 24">
+        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+      </svg>
+      Export as CSV
+    </button>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ============================================ -->
+  <!-- SCRIPTS -->
+  <!-- ============================================ -->
+  <script src="statistics.js"></script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+/* Main styles */
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 15px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  flex: 1;
+  box-sizing: border-box;
+}
+
+/* Tabs - Full width */
+.tabs {
+  display: flex;
+  background: #939b97;
+  border-radius: 10px;
+  padding: 6px;
+  margin-bottom: 15px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #e9e9e9;
+  text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.tab-button svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+.tab-button.active {
+  background: white;
+  color:  #0c8b50;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  font-weight: 500;
+}
+
+.tab-button.active svg {
+  stroke: #29BB74;
+}
+
+.tab-button:hover {
+  /* color: #29BB74; */ /* кнопка налаштування при наведені */
+}
+
+.tab-content {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Form styles - Full width */
+#settings, #instructions {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group {
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #444;
+  font-size: 13px;
+  width: 100%;
+}
+
+input[type="url"],
+input[type="number"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: border 0.3s;
+  box-sizing: border-box;
+}
+
+input[type="url"]:focus,
+input[type="number"]:focus {
+  border-color: #29BB74;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(41, 187, 116, 0.2);
+}
+
+small {
+  display: block;
+  color: #777;
+  font-size: 11px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+/* Buttons */
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+  width: 100%;
+}
+
+button[type="submit"] {
+  padding: 8px 16px;
+  background-color: #29BB74;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-weight: 500;
+  flex: 0 0 auto;
+}
+
+button[type="submit"]:hover {
+  background-color: #027c41;
+}
+
+button#resetDefaults {
+  padding: 8px 16px;
+  background-color: #ec9e9e;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex: 0 0 auto;
+  transition: color 1.0s ease;
+}
+
+button#resetDefaults:hover {
+  background-color: #e24646;
+  color: #f8eeee;
+}
+
+/* Instruction tab */
+.instruction-content {
+  padding: 10px 0 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.instruction-content h3 {
+  color: #333;
+  margin: 0 0 15px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 16px;
+  font-weight: 500;
+  width: 100%;
+}
+
+.instruction-text {
+  margin-bottom: 20px;
+  line-height: 1.5;
+  color: #555;
+  font-size: 13px;
+  width: 100%;
+}
+
+.instruction-text p {
+  margin: 8px 0;
+}
+
+.download-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #29BB74;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: all 0.3s;
+  font-weight: 500;
+  gap: 6px;
+}
+
+.download-link:hover {
+  background-color: #22a565;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(41, 187, 116, 0.2);
+}
+
+/* Save message */
+.save-message {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgb(100, 100, 100);
+  color: #1af09e;
+  border: 1px solid #39f89c; /* Зелена рамка */
+  padding: 12px 24px; /* Розміри відступів */
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); /* Тінь */
+  font-size: 14px;
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.save-message.show {
+  display: block;
+}
+
+.save-message.hide {
+  opacity: 0;
+}
+
+/* Footer */
+footer {
+  background-color: #2A2A2E;
+  padding: 10px 20px;
+  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.logo-group {
+  display: block;
+  width: 94px;
+  height: 24px;
+}
+
+.logo-link {
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.logo-link.logo-k {
+  width: 94px;
+  height: 24px;
+  background-image: url('images/logo_k11.png');
+  transition: background-image 0.3s ease;
+}
+
+.logo-link.logo-k:hover {
+  background-image: url('images/logo_k22.png');
+}
+
+.footer-version {
+  font-size: 13px;
+  color: #29BB74;
+}
+
+/* Додайте ці стилі в кінець файлу options.css */
+
+.language-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: border 0.3s;
+  box-sizing: border-box;
+  background-color: white;
+  color: #333;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+}
+
+.language-select:focus {
+  border-color: #29BB74;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(41, 187, 116, 0.2);
+}

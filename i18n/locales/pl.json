@@ -1,0 +1,301 @@
+{
+    "appName": "Creatio Powiadomienia",
+    "headerSubtitle": "Bądź na bieżąco",
+    
+    "common": {
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "delete": "Usuń",
+      "edit": "Edytuj",
+      "close": "Zamknij",
+      "back": "Wstecz",
+      "next": "Dalej",
+      "previous": "Poprzedni",
+      "loading": "Ładowanie...",
+      "error": "Błąd",
+      "success": "Sukces",
+      "warning": "Ostrzeżenie",
+      "info": "Informacja",
+      "confirm": "Potwierdź",
+      "yes": "Tak",
+      "no": "Nie",
+      "ok": "OK"
+    },
+    
+    "tabs": {
+      "all": "Wszystkie",
+      "unread": "Nieprzeczytane",
+      "visa": "Wizy"
+    },
+    
+    "actions": {
+      "syncNow": "Synchronizuj",
+      "settings": "Ustawienia",
+      "markAsRead": "Oznacz jako przeczytane",
+      "markAllRead": "Oznacz wszystkie jako przeczytane",
+      "deleteNotification": "Usuń",
+      "openNotification": "Otwórz",
+      "copyText": "Kopiuj tekst",
+      "refresh": "Odśwież",
+      "export": "Eksport",
+      "import": "Import"
+    },
+    
+    "search": {
+      "placeholder": "Szukaj powiadomień...",
+      "clear": "Wyczyść wyszukiwanie",
+      "noResults": "Nie znaleziono wyników",
+      "advancedSearch": "Zaawansowane wyszukiwanie",
+      "filters": "Filtry"
+    },
+    
+    "notifications": {
+      "title": "Powiadomienia",
+      "empty": {
+        "title": "Wszystko przeczytane!",
+        "description": "Nie masz teraz żadnych powiadomień. Sprawdź później!"
+      },
+      "types": {
+        "reminder": "Przypomnienie",
+        "visa": "Wiza",
+        "email": "Email",
+        "system": "Systemowe",
+        "esn": "Kanał",
+        "approval": "Zatwierdzenie"
+      }
+    },
+    
+    "time": {
+      "justNow": "Przed chwilą",
+      "minutesAgo": "{{count}}min temu",
+      "hoursAgo": "{{count}}godz temu",
+      "daysAgo": "{{count}}dni temu",
+      "weeksAgo": "{{count}}tyg temu",
+      "lastSync": "Ostatnia synchronizacja: {{time}}"
+    },
+    
+    "settings": {
+      "title": "Ustawienia",
+      "subtitle": "Skonfiguruj powiadomienia Creatio",
+      "connection": {
+        "title": "Połączenie",
+        "description": "Skonfiguruj połączenie z Twoją instancją Creatio",
+        "urlLabel": "URL Creatio",
+        "urlPlaceholder": "https://your-instance.creatio.com",
+        "urlHint": "Wprowadź URL swojej instancji Creatio",
+        "testConnection": "Testuj połączenie",
+        "testing": "Testowanie...",
+        "connected": "Połączono",
+        "disconnected": "Rozłączono",
+        "notAuthenticated": "Nie uwierzytelniono"
+      },
+      "sync": {
+        "title": "Synchronizacja",
+        "description": "Skonfiguruj częstotliwość synchronizacji",
+        "intervalLabel": "Interwał synchronizacji (sekundy)",
+        "intervalHint": "Jak często sprawdzać nowe powiadomienia (10-300 sekund)"
+      },
+      "notifications": {
+        "title": "Typy powiadomień",
+        "description": "Wybierz które typy otrzymywać",
+        "masterToggle": "Włącz powiadomienia",
+        "masterToggleDesc": "Główny przełącznik dla wszystkich powiadomień",
+        "reminderToggle": "Przypomnienia",
+        "reminderToggleDesc": "Przypomnienia o zadaniach i aktywnościach",
+        "visaToggle": "Wizy i zatwierdzenia",
+        "visaToggleDesc": "Prośby o zatwierdzenie dokumentów",
+        "emailToggle": "Powiadomienia email",
+        "emailToggleDesc": "Powiadomienia o nowych wiadomościach",
+        "esnToggle": "Powiadomienia kanału",
+        "esnToggleDesc": "Aktualizacje kanału społecznościowego",
+        "systemToggle": "Powiadomienia systemowe",
+        "systemToggleDesc": "Powiadomienia systemowe i procesowe"
+      },
+      "display": {
+        "title": "Opcje wyświetlania",
+        "description": "Dostosuj wygląd powiadomień",
+        "popupToggle": "Pokazuj okna popup",
+        "popupToggleDesc": "Wyświetlaj okna popup dla nowych powiadomień",
+        "bringToFrontLabel": "Interwał fokusa okien (sekundy)",
+        "bringToFrontHint": "Jak często przenosić okna na pierwszy plan (0 = nigdy)",
+        "languageLabel": "Język"
+      },
+      "advanced": {
+        "title": "Zaawansowane",
+        "description": "Dodatkowe ustawienia",
+        "deactivationLabel": "Dni do dezaktywacji",
+        "deactivationHint": "Automatyczna dezaktywacja po nieaktywności",
+        "deleteLabel": "Dni do usunięcia",
+        "deleteHint": "Automatyczne usunięcie po nieaktywności"
+      },
+      "reset": "Przywróć domyślne",
+      "resetConfirm": "Czy na pewno chcesz przywrócić wszystkie ustawienia domyślne?"
+    },
+    
+    "statistics": {
+      "title": "Statystyki",
+      "subtitle": "Analiza Twoich powiadomień",
+      "quickStats": {
+        "total": "Wszystkie powiadomienia",
+        "unread": "Nieprzeczytane",
+        "responseTime": "Śr. czas odpowiedzi",
+        "readRate": "Wskaźnik odczytu"
+      },
+      "charts": {
+        "timeline": "Powiadomienia w czasie",
+        "types": "Według typu",
+        "responseTimes": "Czasy odpowiedzi",
+        "peakHours": "Godziny szczytu",
+        "received": "Otrzymane",
+        "read": "Przeczytane"
+      },
+      "insights": {
+        "title": "Wnioski i rekomendacje",
+        "excellentRate": "Doskonały wskaźnik odpowiedzi",
+        "excellentRateDesc": "Czytasz {{rate}}% powiadomień. Tak trzymaj!",
+        "lowRate": "Niski wskaźnik odpowiedzi",
+        "lowRateDesc": "Tylko {{rate}}% powiadomień jest czytanych. Rozważ priorytetyzację ważnych.",
+        "fastResponse": "Szybki czas odpowiedzi",
+        "fastResponseDesc": "Średni czas odpowiedzi to {{time}}godz. Jesteś bardzo odpowiedzialny!",
+        "slowResponse": "Wolny czas odpowiedzi",
+        "slowResponseDesc": "Średni czas odpowiedzi to {{time}}godz. Włącz powiadomienia push dla szybszej odpowiedzi.",
+        "highVolume": "Wysoka liczba",
+        "highVolumeDesc": "Otrzymujesz ~{{count}} powiadomień dziennie. Rozważ filtrowanie mniej ważnych typów.",
+        "peakActivity": "Szczytowa aktywność",
+        "peakActivityDesc": "Większość powiadomień przychodzi o {{hour}}:00. Zaplanuj pracę odpowiednio."
+      },
+      "export": {
+        "pdf": "Eksport do PDF",
+        "csv": "Eksport do CSV"
+      },
+      "timeRange": {
+        "7days": "7 dni",
+        "30days": "30 dni",
+        "90days": "90 dni",
+        "allTime": "Cały czas"
+      }
+    },
+    
+    "keyboard": {
+      "title": "Skróty klawiszowe",
+      "navigation": "Nawigacja",
+      "actions": "Akcje",
+      "tabs": "Zakładki",
+      "search": "Wyszukiwanie",
+      "help": "Pomoc",
+      "shortcuts": {
+        "down": "W dół",
+        "up": "W górę",
+        "enter": "Otwórz zaznaczone",
+        "escape": "Wyczyść zaznaczenie",
+        "markRead": "Oznacz jako przeczytane",
+        "delete": "Usuń",
+        "markAll": "Oznacz wszystkie jako przeczytane",
+        "sync": "Synchronizuj",
+        "focusSearch": "Fokus na wyszukiwanie",
+        "showHelp": "Pokaż tę pomoc"
+      }
+    },
+    
+    "export": {
+      "title": "Eksport / Import",
+      "exportData": "Eksport danych",
+      "importData": "Import danych",
+      "settings": {
+        "title": "Ustawienia",
+        "description": "Eksportuj wszystkie ustawienia rozszerzenia"
+      },
+      "notifications": {
+        "title": "Powiadomienia",
+        "description": "Eksportuj historię powiadomień"
+      },
+      "complete": {
+        "title": "Pełna kopia zapasowa",
+        "description": "Ustawienia + Powiadomienia + Statystyki"
+      },
+      "import": {
+        "title": "Importuj kopię zapasową",
+        "description": "Przywróć z pliku"
+      },
+      "success": "Dane wyeksportowano pomyślnie",
+      "imported": "Dane zaimportowano pomyślnie",
+      "error": "Błąd eksportu/importu"
+    },
+    
+    "advancedSearch": {
+      "title": "Zaawansowane wyszukiwanie",
+      "dateRange": "Zakres dat",
+      "status": "Status",
+      "type": "Typ",
+      "sortBy": "Sortuj według",
+      "savedSearches": "Zapisane wyszukiwania",
+      "saveSearch": "Zapisz wyszukiwanie",
+      "applyFilters": "Zastosuj filtry",
+      "resetFilters": "Resetuj",
+      "dateRanges": {
+        "all": "Cały czas",
+        "today": "Dziś",
+        "week": "Ten tydzień",
+        "month": "Ten miesiąc"
+      },
+      "statuses": {
+        "all": "Wszystkie",
+        "read": "Przeczytane",
+        "unread": "Nieprzeczytane"
+      },
+      "sortOptions": {
+        "date": "Data",
+        "type": "Typ",
+        "status": "Status"
+      },
+      "filtersApplied": "Filtry zastosowane",
+      "resultsFound": "Znaleziono {{count}} powiadomień"
+    },
+    
+    "contextMenu": {
+      "open": "Otwórz",
+      "markAsRead": "Oznacz jako przeczytane",
+      "copyText": "Kopiuj tekst",
+      "delete": "Usuń",
+      "copied": "Tekst skopiowano do schowka"
+    },
+    
+    "visa": {
+      "approve": "Zatwierdź",
+      "reject": "Odrzuć",
+      "cancel": "Anuluj",
+      "approved": "Zatwierdzono",
+      "rejected": "Odrzucono",
+      "canceled": "Anulowano"
+    },
+    
+    "messages": {
+      "syncing": "Synchronizacja...",
+      "synced": "Powiadomienia zaktualizowane pomyślnie",
+      "syncFailed": "Synchronizacja nie powiodła się",
+      "initializing": "Rozszerzenie się inicjalizuje...",
+      "marked": "Oznaczono jako przeczytane",
+      "deleted": "Powiadomienie usunięte",
+      "saved": "Ustawienia zapisane pomyślnie",
+      "saveFailed": "Nie udało się zapisać ustawień",
+      "connecting": "Łączenie...",
+      "connected": "Połączono z Creatio",
+      "connectionFailed": "Połączenie nie powiodło się",
+      "ready": "Gotowe"
+    },
+    
+    "errors": {
+      "networkError": "Problem z połączeniem sieciowym. Sprawdź połączenie internetowe.",
+      "authError": "Uwierzytelnianie nie powiodło się. Zaloguj się do Creatio.",
+      "apiError": "Błąd komunikacji z serwerem. Spróbuj ponownie później.",
+      "databaseError": "Błąd lokalnego magazynu. Spróbuj wyczyścić dane przeglądarki.",
+      "permissionError": "Odmowa dostępu. Sprawdź uprawnienia rozszerzenia.",
+      "validationError": "Podano nieprawidłowe dane. Sprawdź wprowadzone dane.",
+      "unknownError": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
+    },
+    
+    "footer": {
+      "openCreatio": "Otwórz Creatio",
+      "statistics": "Statystyki"
+    }
+  }

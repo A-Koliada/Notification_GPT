@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="extensionName">Creatio Notification</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-container">
+        <img src="images/icon-48.png" alt="Creatio Logo" class="logo">
+        <div class="title-container">
+          <h1 class="app-title">Creatio</h1>
+          <span class="brand-subtitle">NOTIFICATION</span>
+        </div>
+      </div>
+      <span class="header-version">v.1.0.1</span>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-button active" data-tab="notifications">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+        </svg>
+        <span class="tab-label" data-i18n="notifications">Notifications</span>
+      </button>
+      
+      <button class="tab-button" data-tab="settings">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+        </svg>
+        <span class="tab-label" data-i18n="settings">Settings</span>
+      </button>
+      
+      <button class="tab-button" data-tab="instructions">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+        </svg>
+        <span class="tab-label" data-i18n="instructions">Instructions</span>
+      </button>
+      
+      <button class="tab-button" data-tab="feedback">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20,2H4A2,2 0 0,0 2,4V22L6,18H20A2,2 0 0,0 22,16V4C22,2.89 21.1,2 20,2Z"/>
+        </svg>
+        <span class="tab-label" data-i18n="feedback">Feedback</span>
+      </button>
+    </div>
+
+    <!-- Content Container -->
+    <div class="content-container">
+      <!-- Notifications Tab -->
+      <div id="notifications" class="tab-content active">
+        <div class="notifications-header">
+          <div class="notifications-title">
+            <span data-i18n="notifications">Notifications</span>
+            <span class="notifications-count" id="notificationsCount">0</span>
+          </div>
+          <div class="notifications-actions">
+            <button id="refreshBtn" class="action-btn refresh-btn" data-i18n-title="refresh">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+              </svg>
+            </button>
+            <button id="markAllReadBtn" class="action-btn mark-all-btn" data-i18n-title="markAllRead">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M0.41,13.41L6,19L7.41,17.58L1.83,12M22.24,5.58L11.66,16.17L7.5,12L6.07,13.41L11.66,19L23.66,7M18,7L16.59,5.58L10.24,11.93L11.66,13.34L18,7Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="notificationsList" class="notifications-list">
+          <!-- Notifications will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings" class="tab-content">
+        <div class="settings-content">
+          <div class="settings-header">
+            <h3 data-i18n="settingsTitle">Settings</h3>
+            <div class="form-buttons">
+              <button type="submit" form="settingsForm" class="save-btn" data-i18n="saveButton">Зберегти</button>
+              <button type="button" id="resetDefaults" class="reset-btn" data-i18n="resetButton">Скинути</button>
+            </div>
+          </div>
+          
+          <form id="settingsForm" class="settings-form">
+            <div class="form-group">
+              <label for="creatioUrl" data-i18n="creatioUrlLabel">Creatio URL:</label>
+              <input type="url" id="creatioUrl" name="creatioUrl" placeholder="https://your-creatio.com" required>
+              <small data-i18n="creatioUrlHelp">URL вашої Creatio системи для отримання сповіщень</small>
+            </div>
+
+            <div class="form-group">
+              <label for="notificationTimeout" data-i18n="notificationTimeoutLabel">Час автозакриття сповіщень (сек):</label>
+              <input type="number" id="notificationTimeout" name="notificationTimeout" min="0" step="1" placeholder="0">
+              <small data-i18n="notificationTimeoutHelp">0 = ручне закриття, >0 = автоматичне закриття</small>
+            </div>
+
+            <div class="form-group">
+              <label for="bringToFrontInterval" data-i18n="bringToFrontLabel">Інтервал фокусування вікон (сек):</label>
+              <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="5" step="1" value="20">
+              <small data-i18n="bringToFrontHelp">Частота показу вікон на передній план</small>
+            </div>
+
+            <div class="form-group">
+              <label for="language" data-i18n="languageLabel">Мова інтерфейсу:</label>
+              <select id="language" name="language" class="language-select">
+                <option value="en" data-i18n="languageOptions.en">English</option>
+                <option value="uk" data-i18n="languageOptions.uk">Українська</option>
+                <option value="pl" data-i18n="languageOptions.pl">Polski</option>
+              </select>
+              <small data-i18n="languageHelp">Мова інтерфейсу розширення</small>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Instructions Tab -->
+      <div id="instructions" class="tab-content">
+        <div class="instructions-content">
+          <h3 data-i18n="instructionsTitle">Інструкція з використання</h3>
+          <div class="instruction-text">
+            <p data-i18n="instruction1">1. Завантажте та встановіть пакет для Creatio</p>
+            <p data-i18n="instruction2">2. Вкажіть URL вашої системи Creatio</p>
+            <p data-i18n="instruction3">3. Налаштуйте параметри сповіщень</p>
+            <p data-i18n="instruction4">4. Встановіть тривалість відображення</p>
+          </div>
+          
+          <div class="download-container">
+            <a href="https://github.com/A-Koliada/Creatio-Notification-Creatio" 
+               target="_blank" 
+               class="download-link"
+               data-i18n="downloadPackage">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              <span data-i18n="downloadPackage">Завантажити пакет</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Tab -->
+      <div id="feedback" class="tab-content">
+        <div class="feedback-content">
+          <h3 data-i18n="feedbackTitle">Send feedback or suggestion</h3>
+          
+          <div class="rating-container">
+            <div class="star-rating">
+              <span class="star" data-rating="1">☆</span>
+              <span class="star" data-rating="2">☆</span>
+              <span class="star" data-rating="3">☆</span>
+              <span class="star" data-rating="4">☆</span>
+              <span class="star" data-rating="5">☆</span>
+            </div>
+          </div>
+          
+          <form id="feedbackForm" class="feedback-form">
+            <div class="form-group">
+              <textarea id="feedbackMessage" 
+                        placeholder="Message" 
+                        rows="6"
+                        data-i18n-placeholder="feedbackPlaceholder"></textarea>
+            </div>
+            
+            <button type="submit" class="send-btn" data-i18n="sendFeedback">Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer footer-custom">
+      <div class="footer-left">
+        <a href="https://denvento.com" target="_blank" class="footer-link">
+          <div class="footer-logo"></div>
+          <span class="company-name">Denvento</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Save Message -->
+    <div id="saveMessage" class="save-message" style="display: none;">
+      <span data-i18n="saveSuccess">Налаштування збережено!</span>
+    </div>
+  </div>
+
+  <script src="locales.js"></script>
+  <script src="i18n.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

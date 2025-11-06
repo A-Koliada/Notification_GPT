@@ -1,0 +1,301 @@
+{
+    "appName": "Creatio Notifications",
+    "headerSubtitle": "Stay connected",
+    
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Information",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "ok": "OK"
+    },
+    
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "visa": "Visa"
+    },
+    
+    "actions": {
+      "syncNow": "Sync now",
+      "settings": "Settings",
+      "markAsRead": "Mark as read",
+      "markAllRead": "Mark all as read",
+      "deleteNotification": "Delete",
+      "openNotification": "Open",
+      "copyText": "Copy text",
+      "refresh": "Refresh",
+      "export": "Export",
+      "import": "Import"
+    },
+    
+    "search": {
+      "placeholder": "Search notifications...",
+      "clear": "Clear search",
+      "noResults": "No results found",
+      "advancedSearch": "Advanced search",
+      "filters": "Filters"
+    },
+    
+    "notifications": {
+      "title": "Notifications",
+      "empty": {
+        "title": "All caught up!",
+        "description": "You don't have any notifications right now. Check back later!"
+      },
+      "types": {
+        "reminder": "Reminder",
+        "visa": "Visa",
+        "email": "Email",
+        "system": "System",
+        "esn": "Feed",
+        "approval": "Approval"
+      }
+    },
+    
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago",
+      "weeksAgo": "{{count}}w ago",
+      "lastSync": "Last sync: {{time}}"
+    },
+    
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Configure your Creatio notifications",
+      "connection": {
+        "title": "Connection",
+        "description": "Configure connection to your Creatio instance",
+        "urlLabel": "Creatio URL",
+        "urlPlaceholder": "https://your-instance.creatio.com",
+        "urlHint": "Enter your Creatio instance URL",
+        "testConnection": "Test Connection",
+        "testing": "Testing...",
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "notAuthenticated": "Not authenticated"
+      },
+      "sync": {
+        "title": "Synchronization",
+        "description": "Configure how often notifications are synced",
+        "intervalLabel": "Sync Interval (seconds)",
+        "intervalHint": "How often to check for new notifications (10-300 seconds)"
+      },
+      "notifications": {
+        "title": "Notification Types",
+        "description": "Choose which types to receive",
+        "masterToggle": "Enable Notifications",
+        "masterToggleDesc": "Master switch for all notifications",
+        "reminderToggle": "Reminders",
+        "reminderToggleDesc": "Task and activity reminders",
+        "visaToggle": "Visa & Approvals",
+        "visaToggleDesc": "Document approval requests",
+        "emailToggle": "Email Notifications",
+        "emailToggleDesc": "New email alerts",
+        "esnToggle": "Feed Notifications",
+        "esnToggleDesc": "Social feed updates",
+        "systemToggle": "System Notifications",
+        "systemToggleDesc": "Process and system alerts"
+      },
+      "display": {
+        "title": "Display Options",
+        "description": "Customize notification appearance",
+        "popupToggle": "Show Popup Windows",
+        "popupToggleDesc": "Display popup windows for new notifications",
+        "bringToFrontLabel": "Popup Focus Interval (seconds)",
+        "bringToFrontHint": "How often to bring popup windows to front (0 = never)",
+        "languageLabel": "Language"
+      },
+      "advanced": {
+        "title": "Advanced",
+        "description": "Additional settings",
+        "deactivationLabel": "Days Until Deactivation",
+        "deactivationHint": "Auto-deactivate after inactive days",
+        "deleteLabel": "Days Until Delete",
+        "deleteHint": "Auto-delete after inactive days"
+      },
+      "reset": "Reset to defaults",
+      "resetConfirm": "Are you sure you want to reset all settings to defaults?"
+    },
+    
+    "statistics": {
+      "title": "Statistics",
+      "subtitle": "Your notification insights",
+      "quickStats": {
+        "total": "Total Notifications",
+        "unread": "Unread",
+        "responseTime": "Avg Response Time",
+        "readRate": "Read Rate"
+      },
+      "charts": {
+        "timeline": "Notifications Over Time",
+        "types": "By Type",
+        "responseTimes": "Response Times",
+        "peakHours": "Peak Hours",
+        "received": "Received",
+        "read": "Read"
+      },
+      "insights": {
+        "title": "Insights & Recommendations",
+        "excellentRate": "Excellent Response Rate",
+        "excellentRateDesc": "You're reading {{rate}}% of notifications. Keep up the great work!",
+        "lowRate": "Low Response Rate",
+        "lowRateDesc": "Only {{rate}}% of notifications are being read. Consider prioritizing important ones.",
+        "fastResponse": "Fast Response Time",
+        "fastResponseDesc": "Average response time is {{time}}h. You're very responsive!",
+        "slowResponse": "Slow Response Time",
+        "slowResponseDesc": "Average response time is {{time}}h. Enable push notifications for faster responses.",
+        "highVolume": "High Volume",
+        "highVolumeDesc": "You receive ~{{count}} notifications per day. Consider filtering less important types.",
+        "peakActivity": "Peak Activity",
+        "peakActivityDesc": "Most notifications arrive at {{hour}}:00. Plan your work accordingly."
+      },
+      "export": {
+        "pdf": "Export as PDF",
+        "csv": "Export as CSV"
+      },
+      "timeRange": {
+        "7days": "7 Days",
+        "30days": "30 Days",
+        "90days": "90 Days",
+        "allTime": "All Time"
+      }
+    },
+    
+    "keyboard": {
+      "title": "Keyboard Shortcuts",
+      "navigation": "Navigation",
+      "actions": "Actions",
+      "tabs": "Tabs",
+      "search": "Search",
+      "help": "Help",
+      "shortcuts": {
+        "down": "Navigate down",
+        "up": "Navigate up",
+        "enter": "Open selected",
+        "escape": "Clear selection",
+        "markRead": "Mark as read",
+        "delete": "Delete",
+        "markAll": "Mark all as read",
+        "sync": "Sync now",
+        "focusSearch": "Focus search",
+        "showHelp": "Show this help"
+      }
+    },
+    
+    "export": {
+      "title": "Export / Import",
+      "exportData": "Export Data",
+      "importData": "Import Data",
+      "settings": {
+        "title": "Settings",
+        "description": "Export all extension settings"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Export notification history"
+      },
+      "complete": {
+        "title": "Complete Backup",
+        "description": "Settings + Notifications + Stats"
+      },
+      "import": {
+        "title": "Import Backup",
+        "description": "Restore from file"
+      },
+      "success": "Data exported successfully",
+      "imported": "Data imported successfully",
+      "error": "Export/Import failed"
+    },
+    
+    "advancedSearch": {
+      "title": "Advanced Search",
+      "dateRange": "Date Range",
+      "status": "Status",
+      "type": "Type",
+      "sortBy": "Sort By",
+      "savedSearches": "Saved Searches",
+      "saveSearch": "Save Search",
+      "applyFilters": "Apply Filters",
+      "resetFilters": "Reset",
+      "dateRanges": {
+        "all": "All Time",
+        "today": "Today",
+        "week": "This Week",
+        "month": "This Month"
+      },
+      "statuses": {
+        "all": "All",
+        "read": "Read",
+        "unread": "Unread"
+      },
+      "sortOptions": {
+        "date": "Date",
+        "type": "Type",
+        "status": "Status"
+      },
+      "filtersApplied": "Filters Applied",
+      "resultsFound": "{{count}} notifications found"
+    },
+    
+    "contextMenu": {
+      "open": "Open",
+      "markAsRead": "Mark as Read",
+      "copyText": "Copy Text",
+      "delete": "Delete",
+      "copied": "Text copied to clipboard"
+    },
+    
+    "visa": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "canceled": "Canceled"
+    },
+    
+    "messages": {
+      "syncing": "Syncing...",
+      "synced": "Notifications updated successfully",
+      "syncFailed": "Sync failed",
+      "initializing": "Extension is initializing...",
+      "marked": "Marked as read",
+      "deleted": "Notification deleted",
+      "saved": "Settings saved successfully",
+      "saveFailed": "Failed to save settings",
+      "connecting": "Connecting...",
+      "connected": "Connected to Creatio",
+      "connectionFailed": "Connection failed",
+      "ready": "Ready"
+    },
+    
+    "errors": {
+      "networkError": "Network connection issue. Please check your internet connection.",
+      "authError": "Authentication failed. Please log in to Creatio.",
+      "apiError": "Server communication error. Please try again later.",
+      "databaseError": "Local storage error. Try clearing browser data.",
+      "permissionError": "Permission denied. Check extension permissions.",
+      "validationError": "Invalid data provided. Please check your input.",
+      "unknownError": "An unexpected error occurred. Please try again."
+    },
+    
+    "footer": {
+      "openCreatio": "Open Creatio",
+      "statistics": "Statistics"
+    }
+  }
