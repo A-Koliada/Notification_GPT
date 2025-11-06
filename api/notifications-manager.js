@@ -39,7 +39,10 @@ export class NotificationsManager {
       const isRead = (n) =>
         n.DnIsRead === true || n.IsRead === true || n.Read === true ||
         (n.Raw && (n.Raw.DnIsRead === true || n.Raw.IsRead === true || n.Raw.Read === true));
-      return (this._cache || []).reduce((acc, n) => acc + (isRead(n) ? 0 : 1), 0);
+      return (this._cache || []).reduce((acc, n) => {
+        if (n.DnDelete) return acc;
+        return acc + (isRead(n) ? 0 : 1);
+      }, 0);
     }
   
     // ✅ ДОДАНО: уніфіковане збереження в кеш + БД
@@ -117,11 +120,13 @@ export class NotificationsManager {
   
     async deleteNotification(id) {
       if (!id) return;
-      await this.api.deleteNotification(id);
-      this._cache = (this._cache || []).filter(n => n.Id !== id);
+      await this.api.setNotificationDeleted(id, true);
+      this._cache = (this._cache || []).map(n =>
+        n.Id === id ? { ...n, DnDelete: true } : n
+      );
       await this.saveToCache(this._cache);
     }
-  
+
     async setVisaDecision(id, decision) {
       try {
         if (typeof this.api.setVisaDecision === "function") {

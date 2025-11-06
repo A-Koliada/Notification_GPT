@@ -947,6 +947,40 @@ async getNotifications({ onlyUnread = false, limit = 100 } = {}) {
     return false;
   }
 
+  async setNotificationDeleted(id, isDeleted = true) {
+    if (!id) return false;
+
+    const payloads = [
+      { DnDelete: !!isDeleted },
+      { Delete: !!isDeleted }
+    ];
+
+    for (const payload of payloads) {
+      try {
+        await this.patch(`/odata/DnNotifications(${id})`, payload);
+        return true;
+      } catch {}
+    }
+
+    const Items = Object.fromEntries(
+      payloads[0] && Object.entries(payloads[0]).map(([key, value]) => [key, { value }])
+    );
+
+    if (Items && Object.keys(Items).length) {
+      try {
+        const body = {
+          RootSchemaName: "DnNotifications",
+          PrimaryColumnValue: id,
+          ColumnValues: { Items }
+        };
+        await this.post("/ServiceModel/EntityDataService.svc/Update", body);
+        return true;
+      } catch {}
+    }
+
+    return false;
+  }
+
   // Позначити всі як прочитані (простий варіант)
   async setAllNotificationsRead(contactId) {
     const list = await this.getNotifications({ onlyUnread: true, limit: 500 });

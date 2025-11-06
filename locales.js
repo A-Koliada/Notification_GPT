@@ -37,6 +37,15 @@ const translations = {
       creatioUrlLabel: "URL Creatio:",
       notificationTimeoutLabel: "Час автозакриття сповіщень (сек):",
       bringToFrontLabel: "Інтервал фокусування вікон (сек):",
+      deliveryModeLabel: "Тип спливаючого вікна:",
+      deliveryModeOptions: {
+        window: "Міні-вікно браузера",
+        system: "Системне сповіщення"
+      },
+      deliveryModeHelp: "Оберіть спосіб відображення спливаючих повідомлень",
+      repeatCountLabel: "Тривалість повторів:",
+      repeatCountHelp: "Кількість повторних показів (∞ — доки не відреаговано)",
+      repeatCountInfinite: "∞ (безкінечно)",
       saveButton: "Зберегти",
       resetButton: "Скинути",
       saveSuccess: "Налаштування збережено!",
@@ -52,7 +61,7 @@ const translations = {
       // Help
       creatioUrlHelp: "URL вашої Creatio системи для отримання сповіщень",
       notificationTimeoutHelp: "0 = ручне закриття, >0 = автоматичне закриття",
-      bringToFrontHelp: "Частота показу вікон на передній план",
+      bringToFrontHelp: "Частота показу вікон на передній план (0 = не піднімати)",
       languageHelp: "Мова інтерфейсу розширення",
 
       //
@@ -127,6 +136,15 @@ const translations = {
       creatioUrlLabel: "Creatio URL:",
       notificationTimeoutLabel: "Notification timeout (sec):",
       bringToFrontLabel: "Bring to front interval (sec):",
+      deliveryModeLabel: "Popup delivery type:",
+      deliveryModeOptions: {
+        window: "Mini browser window",
+        system: "System notification"
+      },
+      deliveryModeHelp: "Choose how popup notifications should appear",
+      repeatCountLabel: "Repeat count:",
+      repeatCountHelp: "How many times to repeat popups (∞ = until action is taken)",
+      repeatCountInfinite: "∞ (infinite)",
       saveButton: "Save",
       resetButton: "Reset",
       saveSuccess: "Settings saved!",
@@ -142,7 +160,7 @@ const translations = {
       // Help
         creatioUrlHelp: "URL of your Creatio system to receive notifications",
         notificationTimeoutHelp: "0 = manual close, >0 = auto close",
-        bringToFrontHelp: "Frequency of bringing windows to front",
+        bringToFrontHelp: "Frequency of bringing windows to front (0 = never)",
         languageHelp: "Extension interface language",
       
       //
@@ -217,6 +235,15 @@ const translations = {
       creatioUrlLabel: "URL Creatio:",
       notificationTimeoutLabel: "Czas automatycznego zamykania (sek):",
       bringToFrontLabel: "Interwał fokusowania okien (sek):",
+      deliveryModeLabel: "Typ wyskakującego okna:",
+      deliveryModeOptions: {
+        window: "Mini-okno przeglądarki",
+        system: "Powiadomienie systemowe"
+      },
+      deliveryModeHelp: "Wybierz sposób wyświetlania powiadomień",
+      repeatCountLabel: "Liczba powtórzeń:",
+      repeatCountHelp: "Ile razy powtarzać powiadomienie (∞ = do reakcji)",
+      repeatCountInfinite: "∞ (bez limitu)",
       saveButton: "Zapisz",
       resetButton: "Resetuj",
       saveSuccess: "Ustawienia zapisane!",
@@ -232,7 +259,7 @@ const translations = {
       // Help
       creatioUrlHelp: "URL twojego systemu Creatio do otrzymywania powiadomień",
       notificationTimeoutHelp: "0 = zamknięcie ręczne, >0 = zamknięcie automatyczne",
-      bringToFrontHelp: "Częstotliwość wysuwania okien na pierwszy plan",
+      bringToFrontHelp: "Częstotliwość wysuwania okien na pierwszy plan (0 = nigdy)",
       languageHelp: "Język interfejsu rozszerzenia",
 
       //

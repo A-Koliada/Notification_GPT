@@ -50,8 +50,46 @@
 
         <div class="form-group">
           <label for="bringToFrontInterval" data-i18n="bringToFrontLabel">Інтервал фокусування вікон (сек):</label>
-          <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="5" step="1" value="20">
+          <input type="number" id="bringToFrontInterval" name="bringToFrontInterval" min="0" step="1" value="20">
           <small data-i18n="bringToFrontHelp" data-i18n-title="bringToFrontHelp">Частота показу вікон на передній план</small>
+        </div>
+
+        <div class="form-group">
+          <label for="deliveryMode" data-i18n="deliveryModeLabel">Тип спливаючого вікна:</label>
+          <select id="deliveryMode" name="deliveryMode">
+            <option value="window" data-i18n="deliveryModeOptions.window">Міні-вікно браузера</option>
+            <option value="system" data-i18n="deliveryModeOptions.system">Системне сповіщення</option>
+          </select>
+          <small data-i18n="deliveryModeHelp" data-i18n-title="deliveryModeHelp">Оберіть спосіб відображення повідомлень</small>
+        </div>
+
+        <div class="form-group">
+          <label for="repeatCount" data-i18n="repeatCountLabel">Тривалість повторів:</label>
+          <select id="repeatCount" name="repeatCount">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="infinite" data-i18n="repeatCountInfinite">∞</option>
+          </select>
+          <small data-i18n="repeatCountHelp" data-i18n-title="repeatCountHelp">Кількість повторних показів (∞ — доки не відреаговано)</small>
         </div>
 
         <div class="form-group">

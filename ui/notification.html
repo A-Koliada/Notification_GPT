@@ -7,47 +7,29 @@
   <link rel="stylesheet" href="notification.css">
 </head>
 <body>
-  <div class="notification-container">
-    <!-- Header -->
-    <div class="notification-header" id="notifHeader">
-      <div class="header-content">
-        <img src="../images/icon-48.png" alt="Creatio" class="notification-icon">
-        <h1 class="notification-title" id="notifTitle">Notification</h1>
-      </div>
-      <button class="close-btn" id="closeBtn" title="Close">&times;</button>
+  <div class="notification-container" id="notificationRoot">
+    <button class="close-btn" id="closeBtn" title="Close">&times;</button>
+
+    <div class="notification-header">
+      <span class="notification-type" id="notifType"></span>
+      <span class="notification-time" id="notifTime"></span>
     </div>
 
-    <!-- Body -->
-    <div class="notification-body">
-      <div class="notification-message" id="notifMessage">
-        Loading...
-      </div>
-
-      <div class="notification-metadata" id="notifMetadata">
-        <span class="metadata-item" id="notifType"></span>
-        <span class="metadata-item" id="notifTime"></span>
-      </div>
-
-      <!-- Visa Section (показується тільки для Visa) -->
-      <div class="visa-section" id="visaSection" style="display: none;">
-        <div class="visa-label">Visa Decision:</div>
-        <select class="visa-select" id="visaSelect">
-          <option value="">-- Select Decision --</option>
-          <option value="positive">✅ Positive</option>
-          <option value="negative">❌ Negative</option>
-          <option value="canceled">🚫 Canceled</option>
-        </select>
-      </div>
+    <div class="notification-main" id="notifBody">
+      <div class="notification-title" id="notifTitle">Notification</div>
+      <div class="notification-message" id="notifMessage">Loading...</div>
     </div>
 
-    <!-- Footer -->
-    <div class="notification-footer">
-      <button class="btn btn-delete" id="deleteBtn">🗑 Delete</button>
-      <button class="btn btn-done" id="doneBtn" style="display: none;">✔ Mark as read</button>
-      <button class="btn btn-visa" id="visaBtn" style="display: none;">📝 Submit Visa</button>
+    <div class="visa-section" id="visaSection" style="display: none;">
+      <label class="visa-label" for="visaSelect">Visa Decision</label>
+      <select class="visa-select" id="visaSelect"></select>
     </div>
 
-    <!-- Auto-close timer bar -->
+    <div class="notification-actions">
+      <button class="action-btn delete" id="deleteBtn" title="Delete">🗑️</button>
+      <button class="action-btn confirm" id="doneBtn" title="Mark as read">✅</button>
+    </div>
+
     <div class="timer-bar" id="timerBar"></div>
   </div>
 

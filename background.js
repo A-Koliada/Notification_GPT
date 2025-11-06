@@ -639,14 +639,16 @@ async function resolveContactIdOrAuth() {
 async function initializeNotifier() {
   try {
     // Отримуємо налаштування
-    const settings = await chrome.storage.sync.get({
-      deliveryMode: 'system',
+    const settingsRaw = await chrome.storage.sync.get({
+      deliveryMode: 'window',
       requireInteraction: false,
-      repeatCount: 3,
+      repeatCount: '3',
       repeatInterval: 60,
-      autoClose: 10,
+      notificationTimeout: 0,
+      autoClose: 0,
       cascade: true,
       openUrlAfterVisa: true,
+      bringToFrontInterval: 20,
       enabledTypes: [
         'ead36165-7815-45d1-9805-1faa47de504a', // Visa
         '337065ba-e6e6-4086-b493-0f6de115bc7a', // Reminder
@@ -664,16 +666,25 @@ async function initializeNotifier() {
         'fa41b6a0-eafd-4bb9-a913-aa74000b46f6': '#06b6d4'
       }
     });
-    
-    state.deliveryMode = settings.deliveryMode;
-    state.notificationSettings = settings;
-    
-    log("⚙️ Notification settings:", settings.deliveryMode);
+
+    const normalizedSettings = {
+      ...settingsRaw,
+      autoClose: Number(settingsRaw.notificationTimeout ?? settingsRaw.autoClose ?? 0),
+      repeatCount: settingsRaw.repeatCount ?? '0',
+      repeatInterval: Number(settingsRaw.repeatInterval ?? settingsRaw.bringToFrontInterval ?? 60),
+      bringToFrontInterval: Number(settingsRaw.bringToFrontInterval ?? settingsRaw.repeatInterval ?? 20)
+    };
+
+    state.deliveryMode = normalizedSettings.deliveryMode;
+    state.notificationSettings = normalizedSettings;
+    startBringToFrontInterval(normalizedSettings.bringToFrontInterval);
+
+    log("⚙️ Notification settings:", normalizedSettings.deliveryMode);
     
     // Callback для дій користувача
     const onAction = async (notificationId, action, data) => {
       log(`📢 Notification action: ${action} for ${data.id}`);
-      
+
       try {
         switch (action) {
           case 'click':
@@ -696,14 +707,17 @@ async function initializeNotifier() {
           
           case 'visa':
             await state.notificationsManager?.setVisaDecision?.(data.id, data.decision);
+            await state.notificationsManager?.markAsRead?.(data.id);
             // Відкрити URL якщо налаштовано
-            if (settings.openUrlAfterVisa && data.sourceUrl) {
+            if (normalizedSettings.openUrlAfterVisa && data.sourceUrl) {
               const fullUrl = state.creatioUrl + data.sourceUrl;
               await chrome.tabs.create({ url: fullUrl });
             }
             break;
         }
-        
+
+        state.syncManager?.stopRepeatsForNotification?.(data.id);
+
         // Оновити дані після дії
         setTimeout(() => state.syncManager?.quickSync?.(), 500);
         
@@ -713,7 +727,7 @@ async function initializeNotifier() {
     };
     
     // Створюємо відповідний notifier
-    if (settings.deliveryMode === 'system') {
+    if (normalizedSettings.deliveryMode === 'system') {
       state.notifier = new OSNotifier(onAction);
       log("✅ OS Notifier initialized");
     } else {
@@ -1170,11 +1184,9 @@ function startBringToFrontInterval(intervalSeconds) {
   if (state.bringToFrontIntervalId) clearInterval(state.bringToFrontIntervalId);
   if (!intervalSeconds || intervalSeconds <= 0) return;
   state.bringToFrontIntervalId = setInterval(() => {
-    Object.entries(state.openedNotifications).forEach(([id, winId]) => {
-      chrome.windows.update(Number(winId), { focused: true }, () => {
-        if (chrome.runtime.lastError) delete state.openedNotifications[id];
-      });
-    });
+    if (state.notifier && typeof state.notifier.bringToFront === 'function') {
+      state.notifier.bringToFront().catch?.(() => {});
+    }
   }, intervalSeconds * 1000);
 }
 
@@ -1211,6 +1223,7 @@ function processNotificationData(items) {
     type: item.DnNotificationType || getNotificationTypeName(item.DnNotificationTypeId) || "Custom",
     typeId: item.DnNotificationTypeId,
     isRead: !!item.DnIsRead,
+    isDeleted: !!item.DnDelete,
     dataRead: item.DnDataRead || null,
     visaCanceled: !!item.DnVisaCanceled,
     visaNegative: !!item.DnVisaNegative,

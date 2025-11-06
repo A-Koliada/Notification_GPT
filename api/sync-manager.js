@@ -45,7 +45,8 @@ class SyncManager {
       
       // ✅ ДОДАНО: Кеш для відстеження попередніх повідомлень
       this.previousNotificationIds = new Set();
-      
+      this.repeatControllers = new Map();
+
       console.log('[SyncManager] ✅ Constructor executed successfully');
     }
   
@@ -140,8 +141,133 @@ class SyncManager {
       
       // Оновлюємо кеш попередніх ID
       this.previousNotificationIds = currentIds;
-      
+
       return deletedIds;
+    }
+
+    stopRepeatsForNotification(id) {
+      const key = String(id || "");
+      const controller = this.repeatControllers.get(key);
+      if (!controller) return;
+      controller.active = false;
+      if (controller.timer) {
+        clearTimeout(controller.timer);
+      }
+      this.repeatControllers.delete(key);
+    }
+
+    _normalizeRepeatCount(value) {
+      if (value === undefined || value === null) return 0;
+      const str = String(value).trim().toLowerCase();
+      if (!str) return 0;
+      if (str === 'infinite' || str === '∞' || str === 'infinity') {
+        return Infinity;
+      }
+      const num = Number(str);
+      if (!Number.isFinite(num) || num <= 0) return 0;
+      return Math.min(20, Math.floor(num));
+    }
+
+    _resolveRepeatInterval(settings) {
+      const base = Number(settings?.repeatInterval);
+      if (Number.isFinite(base) && base > 0) {
+        return base;
+      }
+      const fallback = Number(settings?.bringToFrontInterval);
+      if (Number.isFinite(fallback) && fallback > 0) {
+        return fallback;
+      }
+      return 60;
+    }
+
+    _cleanupRepeatControllers(currentNotifications) {
+      if (!this.repeatControllers.size) return;
+      const lookup = new Map(
+        (currentNotifications || []).map(n => [String(n.Id || n.id), n])
+      );
+
+      for (const [id] of Array.from(this.repeatControllers.entries())) {
+        const data = lookup.get(id);
+        if (!data) {
+          this.stopRepeatsForNotification(id);
+          continue;
+        }
+        if (data.DnDelete || data.Delete || data.IsDeleted) {
+          this.stopRepeatsForNotification(id);
+          continue;
+        }
+        if (data.DnIsRead || data.IsRead || data.Read) {
+          this.stopRepeatsForNotification(id);
+        }
+      }
+    }
+
+    async _showWithRepeats(notification, settings) {
+      if (!notification?.id) return;
+      if (!this.notifier || typeof this.notifier.show !== 'function') return;
+
+      const id = String(notification.id);
+      const repeatCount = this._normalizeRepeatCount(settings?.repeatCount);
+      const intervalSec = Math.max(5, this._resolveRepeatInterval(settings));
+      const notifierOptions = {
+        requireInteraction: settings?.requireInteraction || false,
+        autoClose: settings?.autoClose || 0,
+        cascade: settings?.cascade !== false
+      };
+
+      const existing = this.repeatControllers.get(id);
+      if (existing) {
+        existing.notification = notification;
+        existing.settings = notifierOptions;
+        return;
+      }
+
+      const controller = {
+        id,
+        notification,
+        settings: notifierOptions,
+        remaining: repeatCount === Infinity ? Infinity : repeatCount,
+        interval: intervalSec,
+        active: true,
+        timer: null
+      };
+
+      const showOnce = async () => {
+        try {
+          await this.notifier.show(controller.notification, controller.settings);
+        } catch (err) {
+          console.error('[SyncManager] ❌ Failed to show notification:', err);
+        }
+      };
+
+      const scheduleNext = () => {
+        if (!controller.active) {
+          this.repeatControllers.delete(id);
+          return;
+        }
+        if (controller.remaining !== Infinity && controller.remaining <= 0) {
+          this.repeatControllers.delete(id);
+          return;
+        }
+        controller.timer = setTimeout(async () => {
+          if (!controller.active) return;
+          await showOnce();
+          if (controller.remaining !== Infinity) {
+            controller.remaining -= 1;
+          }
+          scheduleNext();
+        }, controller.interval * 1000);
+      };
+
+      this.repeatControllers.set(id, controller);
+
+      await showOnce();
+
+      if (controller.remaining === Infinity || controller.remaining > 0) {
+        scheduleNext();
+      } else {
+        this.repeatControllers.delete(id);
+      }
     }
   
     // ============================================
@@ -163,6 +289,12 @@ class SyncManager {
         chrome.storage.sync.get({
           showPopupNotifications: true,
           enableNotifications: true,
+          repeatCount: '3',
+          autoClose: 0,
+          requireInteraction: false,
+          cascade: true,
+          repeatInterval: 60,
+          bringToFrontInterval: 20,
           enabledTypes: [
             'ead36165-7815-45d1-9805-1faa47de504a',
             '337065ba-e6e6-4086-b493-0f6de115bc7a',
@@ -200,8 +332,8 @@ class SyncManager {
 
       
       // Показуємо тільки непрочитані нові повідомлення
-      const unreadNew = (newNotifications || []).filter(n => 
-        !n.DnIsRead && !n.IsRead && !n.Read
+      const unreadNew = (newNotifications || []).filter(n =>
+        !n.DnIsRead && !n.IsRead && !n.Read && !n.DnDelete
       );
       
       console.log('[SyncManager] 📊 Filtered unread notifications:', unreadNew.length);
@@ -238,21 +370,16 @@ class SyncManager {
           console.log('[SyncManager] 📤 Calling notifier.show for:', normalizedNotif.id);
           
           // Викликаємо notifier.show()
-          await this.notifier.show(normalizedNotif, {
-            requireInteraction: settings.requireInteraction || false,
-            autoClose: settings.autoClose || 10,
-            cascade: settings.cascade !== false
-          });
-          
-          console.log('[SyncManager] ✅ Notification shown:', normalizedNotif.id);
+          await this._showWithRepeats(normalizedNotif, settings);
+          console.log('[SyncManager] ✅ Notification scheduled:', normalizedNotif.id);
           
         } catch (error) {
           console.error('[SyncManager] ❌ Failed to show notification:', error);
           console.error('[SyncManager] Error stack:', error.stack);
         }
         
-        // Невелика затримка між показами
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Невелика затримка між запуском контролерів
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
     }
   
@@ -291,6 +418,7 @@ class SyncManager {
         // Це дозволяє відстежувати видалені повідомлення
         console.log('[SyncManager] Loading all notifications from Creatio...');
         currentNotifications = await this.notificationsManager.fetchAll();
+        this._cleanupRepeatControllers(currentNotifications);
         
         // ✅ ДОДАНО: Визначаємо нові повідомлення
         const cachedNotifications = await this.notificationsManager.getFromCache();
@@ -309,6 +437,7 @@ class SyncManager {
         
         // ✅ ДОДАНО: Перевіряємо видалені повідомлення
         const deletedIds = await this.checkDeletedNotifications(currentNotifications);
+        deletedIds.forEach(id => this.stopRepeatsForNotification(id));
         
         this.lastSyncTime = new Date().toISOString();
         await this.db.setSyncData({

@@ -6,6 +6,15 @@ let notificationData = null;
 let windowId = null;
 let autoCloseTimer = null;
 
+const TYPE_LABELS = {
+  Visa: '✍️ Visa',
+  Reminder: '🔔 Reminder',
+  Email: '📧 Email',
+  ESN: '💬 ESN',
+  System: '⚙️ System',
+  Custom: '⭐ Custom'
+};
+
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -57,7 +66,7 @@ function requestNotificationData() {
 
 function renderNotification() {
   if (!notificationData) return;
-  
+
   const {
     title,
     message,
@@ -67,46 +76,35 @@ function renderNotification() {
     isVisa,
     autoClose
   } = notificationData;
-  
-  // Title
-  document.getElementById('notifTitle').textContent = truncate(title, 40);
-  
-  // Message (truncate до 200 символів)
-  document.getElementById('notifMessage').textContent = truncate(message, 200);
-  
-  // Type badge (опціонально)
-  const typeEl = document.getElementById('notifType');
-  if (typeId) {
-    typeEl.textContent = getTypeName(typeId);
-    typeEl.style.display = 'inline-block';
+
+  const container = document.getElementById('notificationRoot');
+  if (container) {
+    container.classList.toggle('high-priority', priority > 0);
   }
-  
-  // Time
-  const timeEl = document.getElementById('notifTime');
-  if (createdOn) {
-    timeEl.textContent = formatTime(createdOn);
-    timeEl.style.display = 'inline-block';
-  }
-  
-  // Priority header color
-  if (priority > 0) {
-    document.getElementById('notifHeader').classList.add('high-priority');
-  }
-  
-  // Visa section
+
+  document.getElementById('notifTitle').textContent = truncate(title, 60);
+  const singleLine = truncate(getFirstLine(message), 120);
+  document.getElementById('notifMessage').textContent = singleLine;
+
+  const typeName = getTypeName(typeId);
+  const typeLabel = TYPE_LABELS[typeName] || TYPE_LABELS.Custom;
+  document.getElementById('notifType').textContent = typeLabel;
+
+  document.getElementById('notifTime').textContent = createdOn ? formatTime(createdOn) : '';
+
   if (isVisa) {
-    document.getElementById('visaSection').style.display = 'block';
-    document.getElementById('visaBtn').style.display = 'flex';
+    document.getElementById('visaSection').style.display = 'flex';
     document.getElementById('doneBtn').style.display = 'none';
+    populateVisaOptions();
   } else {
     document.getElementById('visaSection').style.display = 'none';
-    document.getElementById('visaBtn').style.display = 'none';
-    document.getElementById('doneBtn').style.display = 'flex';
+    document.getElementById('doneBtn').style.display = 'inline-flex';
   }
-  
-  // Auto-close timer
+
   if (autoClose > 0) {
     startAutoCloseTimer(autoClose);
+  } else {
+    resetAutoCloseTimer();
   }
 }
 
@@ -119,25 +117,28 @@ function setupEventListeners() {
   document.getElementById('closeBtn').addEventListener('click', () => {
     window.close();
   });
-  
-  // Header click - відкрити URL
-  document.getElementById('notifHeader').addEventListener('click', () => {
+
+  // Основний блок - відкрити URL
+  document.getElementById('notifBody').addEventListener('click', () => {
     handleAction('click');
   });
-  
+
   // Delete button
   document.getElementById('deleteBtn').addEventListener('click', () => {
     handleAction('delete');
   });
-  
+
   // Done button
   document.getElementById('doneBtn').addEventListener('click', () => {
     handleAction('done');
   });
-  
-  // Visa submit button
-  document.getElementById('visaBtn').addEventListener('click', () => {
-    handleVisaSubmit();
+
+  // Visa select change
+  document.getElementById('visaSelect').addEventListener('change', (event) => {
+    const decision = event.target.value;
+    if (decision) {
+      handleVisaDecision(decision);
+    }
   });
 }
 
@@ -164,23 +165,15 @@ function handleAction(action) {
   });
 }
 
-function handleVisaSubmit() {
+function handleVisaDecision(decision) {
+  if (!notificationData) return;
   const select = document.getElementById('visaSelect');
-  const decision = select.value;
-  
   if (!decision) {
-    // Highlight select якщо не обрано
-    select.style.borderColor = '#dc2626';
-    select.focus();
-    setTimeout(() => {
-      select.style.borderColor = '#f59e0b';
-    }, 1000);
     return;
   }
-  
+
   console.log('[Notification Window] Visa decision:', decision);
-  
-  // Відправляємо повідомлення в background
+
   chrome.runtime.sendMessage({
     type: 'notification-action',
     windowId: windowId,
@@ -190,6 +183,9 @@ function handleVisaSubmit() {
       decision: decision
     }
   }).then(() => {
+    if (select) {
+      select.disabled = true;
+    }
     window.close();
   }).catch(err => {
     console.error('[Notification Window] Failed to send visa decision:', err);
@@ -202,13 +198,28 @@ function handleVisaSubmit() {
 // ============================================
 
 function startAutoCloseTimer(seconds) {
+  resetAutoCloseTimer();
   const timerBar = document.getElementById('timerBar');
+  if (!timerBar) return;
+
   timerBar.style.animation = `timer-countdown ${seconds}s linear`;
-  
   autoCloseTimer = setTimeout(() => {
     console.log('[Notification Window] Auto-closing...');
     window.close();
   }, seconds * 1000);
+}
+
+function resetAutoCloseTimer() {
+  if (autoCloseTimer) {
+    clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+  const timerBar = document.getElementById('timerBar');
+  if (timerBar) {
+    timerBar.style.animation = 'none';
+    // force reflow to restart animation later
+    void timerBar.offsetWidth;
+  }
 }
 
 // ============================================
@@ -221,6 +232,45 @@ function truncate(str, maxLength) {
   return str.substring(0, maxLength - 3) + '...';
 }
 
+function getFirstLine(str) {
+  if (!str) return '';
+  const [firstLine] = String(str).split(/\r?\n/);
+  return firstLine || '';
+}
+
+function populateVisaOptions() {
+  const select = document.getElementById('visaSelect');
+  if (!select) return;
+
+  const options = [
+    { value: 'positive', label: '✅ Positive' },
+    { value: 'negative', label: '❌ Negative' },
+    { value: 'canceled', label: '🚫 Canceled' }
+  ];
+
+  const shuffled = options
+    .map(item => ({ sort: Math.random(), value: item }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(item => item.value);
+
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- Select decision --';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.appendChild(placeholder);
+
+  for (const option of shuffled) {
+    const optionEl = document.createElement('option');
+    optionEl.value = option.value;
+    optionEl.textContent = option.label;
+    select.appendChild(optionEl);
+  }
+
+  select.disabled = false;
+}
+
 function getTypeName(typeId) {
   const types = {
     'ead36165-7815-45d1-9805-1faa47de504a': 'Visa',
@@ -230,7 +280,7 @@ function getTypeName(typeId) {
     'ae6c7636-32fd-4548-91a7-1784a28e7f9e': 'Custom',
     'fa41b6a0-eafd-4bb9-a913-aa74000b46f6': 'ESN'
   };
-  return types[typeId] || 'Notification';
+  return types[typeId] || 'Custom';
 }
 
 function formatTime(isoString) {

@@ -44,14 +44,18 @@ document.addEventListener("DOMContentLoaded", function () {
     creatioUrl: "",
     notificationTimeout: 0,
     bringToFrontInterval: 20,
+    deliveryMode: "window",
+    repeatCount: "3",
     language: "en" // Default language
   }, (items) => {
     log("🔧 Loaded settings:", items);
     document.getElementById("creatioUrl").value = items.creatioUrl;
     document.getElementById("notificationTimeout").value = items.notificationTimeout;
-    document.getElementById("bringToFrontInterval").value = Math.max(5, items.bringToFrontInterval);
+    document.getElementById("bringToFrontInterval").value = Math.max(0, items.bringToFrontInterval);
+    document.getElementById("deliveryMode").value = items.deliveryMode || "window";
+    document.getElementById("repeatCount").value = items.repeatCount || "3";
     document.getElementById("language").value = items.language;
-    
+
     // Update UI language
     updateLocalizedTexts(items.language);
   });
@@ -62,10 +66,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const settings = {
       creatioUrl: document.getElementById("creatioUrl").value.trim(),
       notificationTimeout: parseInt(document.getElementById("notificationTimeout").value) || 0,
-      bringToFrontInterval: Math.max(5, parseInt(document.getElementById("bringToFrontInterval").value) || 20),
+      bringToFrontInterval: Math.max(0, parseInt(document.getElementById("bringToFrontInterval").value) || 0),
+      deliveryMode: document.getElementById("deliveryMode").value,
+      repeatCount: document.getElementById("repeatCount").value,
       language: document.getElementById("language").value
     };
-    
+
+    settings.autoClose = settings.notificationTimeout;
+
     log("💾 Saving settings:", settings);
     chrome.storage.sync.set(settings, () => {
       // Notify background script about settings update
@@ -92,16 +100,21 @@ document.addEventListener("DOMContentLoaded", function () {
         creatioUrl: "",
         notificationTimeout: 0,
         bringToFrontInterval: 20,
+        deliveryMode: "window",
+        repeatCount: "3",
+        autoClose: 0,
         language: "en"
       };
-      
+
       log("🔄 Resetting to default settings:", defaultSettings);
       chrome.storage.sync.set(defaultSettings, () => {
         document.getElementById("creatioUrl").value = defaultSettings.creatioUrl;
         document.getElementById("notificationTimeout").value = defaultSettings.notificationTimeout;
         document.getElementById("bringToFrontInterval").value = defaultSettings.bringToFrontInterval;
+        document.getElementById("deliveryMode").value = defaultSettings.deliveryMode;
+        document.getElementById("repeatCount").value = defaultSettings.repeatCount;
         document.getElementById("language").value = defaultSettings.language;
-        
+
         // Update UI to default language
         updateLocalizedTexts(defaultSettings.language);
         

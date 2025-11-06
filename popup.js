@@ -426,16 +426,22 @@ function renderNotifications() {
     return;
   }
 
-  elements.container.innerHTML = state.notifications.map(notification => `
-    <div class="notification-item" data-id="${notification.id}">
-      <div class="notification-title">${escapeHtml(notification.title)}</div>
-      <div class="notification-message">${escapeHtml(notification.message)}</div>
-      <div class="notification-meta">
-        <span class="notification-type">${escapeHtml(resolveTypeName(notification))}</span>
-        <span class="notification-date">${formatDate(notification.date)}</span>
+  elements.container.innerHTML = state.notifications.map(notification => {
+    const classes = ['notification-item'];
+    if (notification.isDeleted) {
+      classes.push('notification-item--deleted');
+    }
+    return `
+      <div class="${classes.join(' ')}" data-id="${notification.id}">
+        <div class="notification-title">${escapeHtml(notification.title)}</div>
+        <div class="notification-message">${escapeHtml(notification.message)}</div>
+        <div class="notification-meta">
+          <span class="notification-type">${escapeHtml(resolveTypeName(notification))}</span>
+          <span class="notification-date">${formatDate(notification.date)}</span>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   // Add event listeners to notification items
   document.querySelectorAll('.notification-item').forEach(item => {
@@ -473,6 +479,8 @@ async function loadSettingsToForm() {
       creatioUrl: "",
       notificationTimeout: 0,
       bringToFrontInterval: 20,
+      deliveryMode: "window",
+      repeatCount: "3",
       language: "en"
     });
 
@@ -481,6 +489,10 @@ async function loadSettingsToForm() {
       form.querySelector('#creatioUrl').value = settings.creatioUrl;
       form.querySelector('#notificationTimeout').value = settings.notificationTimeout;
       form.querySelector('#bringToFrontInterval').value = settings.bringToFrontInterval;
+      const deliveryField = form.querySelector('#deliveryMode');
+      if (deliveryField) deliveryField.value = settings.deliveryMode || 'window';
+      const repeatField = form.querySelector('#repeatCount');
+      if (repeatField) repeatField.value = settings.repeatCount || '3';
       form.querySelector('#language').value = settings.language;
     }
 
@@ -498,9 +510,13 @@ async function handleSettingsSubmit(e) {
   const settings = {
     creatioUrl: formData.get('creatioUrl').trim(),
     notificationTimeout: parseInt(formData.get('notificationTimeout')) || 0,
-    bringToFrontInterval: Math.max(5, parseInt(formData.get('bringToFrontInterval')) || 20),
+    bringToFrontInterval: Math.max(0, parseInt(formData.get('bringToFrontInterval')) || 0),
+    deliveryMode: formData.get('deliveryMode') || 'window',
+    repeatCount: formData.get('repeatCount') || '3',
     language: formData.get('language')
   };
+
+  settings.autoClose = settings.notificationTimeout;
   
   const oldLanguage = state.currentLanguage;
   
@@ -554,6 +570,9 @@ async function handleResetSettings() {
     creatioUrl: "",
     notificationTimeout: 0,
     bringToFrontInterval: 20,
+    deliveryMode: "window",
+    autoClose: 0,
+    repeatCount: "3",
     language: "en"
   };
   

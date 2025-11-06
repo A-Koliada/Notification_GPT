@@ -328,6 +328,16 @@ body {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+.notification-item--deleted {
+  opacity: 0.6;
+}
+
+.notification-item--deleted .notification-title,
+.notification-item--deleted .notification-message {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
 .notification-title {
   font-weight: 600;
   color: var(--background-color);

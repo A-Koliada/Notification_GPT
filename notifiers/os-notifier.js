@@ -50,9 +50,9 @@ export class OSNotifier {
   
   async show(notification, options = {}) {
     const notificationId = `dn_${notification.id || notification.Id}`;
-    
+
     this._log("📢 Attempting to show notification:", notificationId);
-    
+
     // Check permissions first
     const permission = await chrome.permissions.contains({ permissions: ['notifications'] });
     this._log("🔐 Notification permission granted:", permission);
@@ -93,9 +93,10 @@ export class OSNotifier {
     });
 
     try {
+      await this.clear(notificationId).catch(() => {});
       await chrome.notifications.create(notificationId, notificationOptions);
       this._log("✅ System notification shown:", notificationId);
-      
+
       // Перевірка чи нотифікація була створена
       const allNotifs = await chrome.notifications.getAll();
       this._log("📋 Active system notifications:", Object.keys(allNotifs).length);
@@ -105,6 +106,8 @@ export class OSNotifier {
       this._log("Error details:", err.message);
       throw err;
     }
+
+    return notificationId;
   }
 
   /**
