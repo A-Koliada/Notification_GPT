@@ -118,6 +118,17 @@
         "popupToggleDesc": "Display popup windows for new notifications",
         "bringToFrontLabel": "Popup Focus Interval (seconds)",
         "bringToFrontHint": "How often to bring popup windows to front (0 = never)",
+        "deliveryModeLabel": "Notification Delivery Mode",
+        "deliveryModeHelp": "Choose how popup notifications should appear",
+        "deliveryModeOptions": {
+          "window": "Mini browser window",
+          "system": "System notification"
+        },
+        "popupRepeatCountLabel": "Repeat Count",
+        "popupRepeatCountHelp": "Number of reminder shows for a notification",
+        "popupRepeatCountOptions": {
+          "infinity": "∞ Infinite"
+        },
         "languageLabel": "Language"
       },
       "advanced": {

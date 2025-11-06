@@ -118,6 +118,17 @@
         "popupToggleDesc": "Wyświetlaj okna popup dla nowych powiadomień",
         "bringToFrontLabel": "Interwał fokusa okien (sekundy)",
         "bringToFrontHint": "Jak często przenosić okna na pierwszy plan (0 = nigdy)",
+        "deliveryModeLabel": "Tryb dostarczania powiadomień",
+        "deliveryModeHelp": "Wybierz sposób wyświetlania wyskakujących powiadomień",
+        "deliveryModeOptions": {
+          "window": "Mini okno przeglądarki",
+          "system": "Powiadomienie systemowe"
+        },
+        "popupRepeatCountLabel": "Liczba powtórzeń",
+        "popupRepeatCountHelp": "Ile razy ponawiać wyświetlenie powiadomienia",
+        "popupRepeatCountOptions": {
+          "infinity": "∞ Bez ograniczeń"
+        },
         "languageLabel": "Język"
       },
       "advanced": {
